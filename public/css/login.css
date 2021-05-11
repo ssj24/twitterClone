@@ -1,0 +1,53 @@
+body {
+	background-color: rgb(227, 252, 188);
+}
+
+.wrapper {
+	display: flex;
+	justify-content: center;
+	margin-top: 20px;
+}
+
+.loginContainer {
+	padding: 20px;
+	width: 80%;
+	max-width: 500px;
+	border: 1px solid #dedede;
+	background-color: whitesmoke;
+	text-align: center;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+	-webkit-box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+	-moz-box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+form {
+	display: flex;
+	flex-direction: column;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+	margin-bottom: 20px;
+	padding: 5px 10px;
+	border-radius: 2px;
+	border: 1px solid #dedede;
+	background-color: #f2f2f2;
+}
+
+input[type="submit"] {
+	display: flex;
+	align-self: center;
+	justify-content: center;
+	background-color: rgb(227, 252, 188);
+	border: none;
+	border-radius: 2px;
+	padding: 10px;
+	margin-bottom: 10px;
+	width: 30%;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+input[type="submit"]:hover {
+	box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.3);
+}

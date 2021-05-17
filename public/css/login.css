@@ -1,5 +1,8 @@
 body {
-	background-color: rgb(227, 252, 188);
+	background: #A1FFCE;  /* fallback for old browsers */
+	background: -webkit-linear-gradient(to bottom, #FAFFD1, #A1FFCE);  /* Chrome 10-25, Safari 5.1-6 */
+	background: linear-gradient(to bottom, #FAFFD1, #A1FFCE); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+	height: 100vh;
 }
 
 .wrapper {
@@ -39,7 +42,7 @@ input[type="submit"] {
 	display: flex;
 	align-self: center;
 	justify-content: center;
-	background-color: rgb(227, 252, 188);
+	background-color: #FAFFD1;
 	border: none;
 	border-radius: 2px;
 	padding: 10px;
@@ -49,5 +52,6 @@ input[type="submit"] {
 }
 
 input[type="submit"]:hover {
+	background-color: #bbf5d7;
 	box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.3);
 }

@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const router = express.Router();
 const bodyParser = require("body-parser");
+const User = require('../schemas/UserSchema');
 
 app.set("view engine", "pug");
 app.set("views", "views");
@@ -22,7 +23,12 @@ router.post("/", (req, res, next) => {
 
     const payload = req.body;
     if (firstName && lastName && username && email && password) {
-
+        User.findOne({
+            $or: [
+                {username: username},
+                {email: email},
+            ]
+        })
     } else {
         payload.errorMessage = "Make sure each field has a valid value.";
         res.status(200).render("register", payload);

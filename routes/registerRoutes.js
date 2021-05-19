@@ -14,7 +14,7 @@ app.use(express.urlencoded({
 router.get("/", (req, res, next) => {
     res.status(200).render("register");
 });
-router.post("/", (req, res, next) => {
+router.post("/", async (req, res, next) => {
     const firstName = req.body.firstName.trim();
     const lastName = req.body.lastName.trim();
     const username = req.body.username.trim();
@@ -23,12 +23,30 @@ router.post("/", (req, res, next) => {
 
     const payload = req.body;
     if (firstName && lastName && username && email && password) {
-        User.findOne({
+        var user = await User.findOne({
             $or: [
                 {username: username},
                 {email: email},
             ]
         })
+        .catch((error) => {
+            console.log(error);
+            payload.errorMessage = "Something went wrong.";
+            res.status(200).render("register", payload);
+        });
+
+        if (user==null) {
+            // No user found
+        } else {
+            // User found
+            if (email == user.email) {
+                payload.errorMessage = "Email already in use.";
+            } else {
+                payload.errorMessage = "Username already in use..";
+            }
+            res.status(200).render("register", payload);
+        }
+
     } else {
         payload.errorMessage = "Make sure each field has a valid value.";
         res.status(200).render("register", payload);

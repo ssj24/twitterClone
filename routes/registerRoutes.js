@@ -1,8 +1,9 @@
-const express = require('express');
+const express = require("express");
 const app = express();
 const router = express.Router();
 const bodyParser = require("body-parser");
-const User = require('../schemas/UserSchema');
+const bcrypt = require("bcrypt");
+const User = require("../schemas/UserSchema");
 
 app.set("view engine", "pug");
 app.set("views", "views");
@@ -37,6 +38,14 @@ router.post("/", async (req, res, next) => {
 
         if (user==null) {
             // No user found
+            var data = req.body;
+
+            data.password = await bcrypt.hash(password, 10)
+            User.create(data)
+            .then((user) => {
+                req.session.user = user;
+                return res.redirect("/");
+            })
         } else {
             // User found
             if (email == user.email) {

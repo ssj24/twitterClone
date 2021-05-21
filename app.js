@@ -27,8 +27,10 @@ app.use(express.urlencoded({
 }));
 // Routes
 const loginRoute = require("./routes/loginRoutes");
+const logoutRoute = require("./routes/logoutRoutes");
 const registerRoute = require("./routes/registerRoutes");
 app.use("/login", loginRoute);
+app.use("/logout", logoutRoute);
 app.use("/register", registerRoute);
 
 app.get("/", middleware.requireLogin, (req, res, next) => {

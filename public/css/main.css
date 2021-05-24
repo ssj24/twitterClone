@@ -1,9 +1,11 @@
 :root {
     --leaf_green: #04802d;
     --light_green: #97d58a;
-    --hover_green: #e2f2e7;
+    --pale_green: #e2f2e7;
     --light_grey: #e6ecf0;
     --spacing: 15px;
+    --grey_text: #657786;
+    --grey_button_text: #00000057;
 }
 
 * {
@@ -50,15 +52,20 @@ nav .logoImage {
 
 nav a:hover {
     color: var(--leaf_green);
-    background-color: var(--hover_green);
-    border: 1px solid var(--light_green);
+    background-color: var(--pale_green);
     border-radius: 50%;
+}
+
+button {
+    background-color: transparent;
+    border: none;
+    color: var(--grey_button_text);
 }
 
 .mainSectionContainer {
     padding: 0;
-    border-left: 1px solid var(--hover_green);
-    border-right: 1px solid var(--hover_green);
+    border-left: 1px solid var(--pale_green);
+    border-right: 1px solid var(--pale_green);
     display: flex;
     flex-direction: column;
 }
@@ -68,7 +75,7 @@ nav a:hover {
     padding: 0 var(--spacing);
     display: flex;
     align-items: center;
-    border-bottom: 1px solid var(--hover_green);
+    border-bottom: 1px solid var(--pale_green);
     flex-shrink: 0;
 }
 
@@ -79,7 +86,7 @@ nav a:hover {
 .postFormContainer {
     display: flex;
     padding: var(--spacing);
-    border-bottom: 5px solid var(--hover_green);
+    border-bottom: 5px solid var(--pale_green);
     flex-shrink: 0;
 }
 
@@ -120,4 +127,66 @@ nav a:hover {
 
 #submitPostButton:disabled {
     background-color: var(--light_green);
+}
+
+.postsContainer {
+    display: flex;
+    flex-direction: column;
+    padding: var(--spacing);
+    cursor: pointer;
+    border-bottom: 1px solid var(--pale_green);
+    flex-shrink: 0;
+}
+
+.mainContentContainer {
+    flex: 1;
+    display: flex;
+
+}
+
+.postContentContainer {
+    padding-left: var(--spacing);
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.postHeader a,
+.postHeader span {
+    padding-right: 5px;
+}
+
+.displayName {
+    font-weight: bold;
+}
+
+.displayName:hover {
+    text-decoration: underline;
+}
+
+.username,
+.date {
+    color: var(--grey_text);
+}
+
+.postFooter {
+    display: flex;
+    align-items: center;
+}
+
+.postFooter .postButtonContainer {
+    flex: 0.8;
+    display: flex;
+    justify-content: space-between;
+}
+
+.postFooter .postButtonContainer button {
+    margin-top: 10px;
+    padding: 5px 10px;
+}
+
+.postButtonContainer button:hover {
+    background-color: var(--pale_green);
+    color: var(--leaf_green);
+    border-radius: 50%;
 }

@@ -15,9 +15,9 @@ router.get("/", (req, res, next) => {
 	res.status(200).render("login");
 });
 router.post("/", async (req, res, next) => {
-	var payload = req.body;
+	const payload = req.body;
 	if (req.body.logName && req.body.logPassword) {
-		var user = await User.findOne({
+		const user = await User.findOne({
             $or: [
                 {username: req.body.logName},
                 {email: req.body.logName},
@@ -29,7 +29,7 @@ router.post("/", async (req, res, next) => {
             res.status(200).render("login", payload);
         });
 		if (user != null) {
-			var result = await bcrypt.compare(req.body.logPassword, user.password)
+			const result = await bcrypt.compare(req.body.logPassword, user.password)
 			
 			if (result === true) {
 				req.session.user = user;

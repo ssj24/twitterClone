@@ -24,7 +24,7 @@ router.post("/", async (req, res, next) => {
 
     const payload = req.body;
     if (firstName && lastName && username && email && password) {
-        var user = await User.findOne({
+        const user = await User.findOne({
             $or: [
                 {username: username},
                 {email: email},
@@ -38,7 +38,7 @@ router.post("/", async (req, res, next) => {
 
         if (user==null) {
             // No user found
-            var data = req.body;
+            const data = req.body;
 
             data.password = await bcrypt.hash(password, 10)
             User.create(data)

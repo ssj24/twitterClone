@@ -6,6 +6,10 @@
     --spacing: 15px;
     --grey_text: #657786;
     --grey_button_text: #00000057;
+    --blue: #1fa2f1;
+    --pale_blue: #e3f0f9d0;
+    --red: #e2225e;
+    --pale_red: #fae5ecbd;
 }
 
 * {
@@ -60,6 +64,11 @@ button {
     background-color: transparent;
     border: none;
     color: var(--grey_button_text);
+}
+
+button i,
+button span {
+    pointer-events: none;
 }
 
 .mainSectionContainer {
@@ -138,6 +147,10 @@ button {
     flex-shrink: 0;
 }
 
+.post {
+    flex: 1;
+}
+
 .mainContentContainer {
     flex: 1;
     display: flex;
@@ -186,7 +199,24 @@ button {
 }
 
 .postButtonContainer button:hover {
+    border-radius: 50%;
+}
+
+.postButtonContainer .commentButton:hover {
     background-color: var(--pale_green);
     color: var(--leaf_green);
-    border-radius: 50%;
+}
+
+.postButtonContainer .retweetButton:hover {
+    background-color: var(--pale_blue);
+    color: var(--blue);
+}
+
+.postButtonContainer .likeButton:hover {
+    background-color: var(--pale_red);
+    color: var(--red);
+}
+
+.postButtonContainer button.active.red {
+    color: var(--red);
 }

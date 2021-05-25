@@ -149,6 +149,13 @@ button span {
 
 .post {
     flex: 1;
+    margin-bottom: var(--spacing);
+}
+
+.postActionContainer {
+    padding-left: 60px;
+    font-size: 13px;
+    color: var(--grey_text);
 }
 
 .mainContentContainer {
@@ -217,6 +224,13 @@ button span {
     color: var(--red);
 }
 
+.postButtonContainer .retweetButton.active.blue {
+    color: var(--blue);
+
+}
+
 .postButtonContainer button.active.red {
     color: var(--red);
 }
+
+

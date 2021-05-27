@@ -14,13 +14,7 @@ const PostSchema = new Schema({
     likes: [{type: Schema.Types.ObjectId, ref: 'User' }],
     retweetUsers: [{type: Schema.Types.ObjectId, ref: 'User' }],
     retweetData: {type: Schema.Types.ObjectId, ref: 'Post' },
-    // comments: {
-    //     type: String,
-    //     trim: true,
-    //     postedBy: [{type: Schema.Types.ObjectId, ref: 'User' }],
-    //     content: String,
-
-    // }
+    replyTo: {type: Schema.Types.ObjectId, ref: 'Post' },
 }, { timestamps: true });
 
 const Post = mongoose.model('Post', PostSchema);

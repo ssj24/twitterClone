@@ -5,4 +5,24 @@ mixin createPostForm(userLoggedIn)
         .textareaContainer 
             textarea#postTextarea(placeholder="What's happening?")
             .buttonsContainer 
-                button#submitPostButton(disabled="") Post
+                button#submitPostButton.postButton(disabled="") Post
+
+mixin createReplyModal(userLoggedIn)
+    #replyModal.modal.fade(tabindex='-1', role='dialog', aria-labelledby='replyModalLabel', aria-hidden='true')
+        .modal-dialog(role='document')
+            .modal-content
+                .modal-header
+                    img(src="/images/leaf.png", alt="")
+
+                    h5#replyModalLabel.modal-title Reply #{userLoggedIn.username}
+                    button.close(type='button', data-dismiss='modal', aria-label='Close')
+                        span(aria-hidden='true') &times;
+                .modal-body
+                    #originalPostContainer
+                    .postFormContainer
+                        .userImageContainer
+                            img(src=userLoggedIn.profilePic, alt="user's profile picture")
+                        .textareaContainer 
+                            textarea#replyTextarea(placeholder="What's happening?")
+                .modal-footer
+                    button#submitReplyButton.postButton(type='button', disabled="") Reply

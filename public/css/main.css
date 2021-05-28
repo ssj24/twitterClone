@@ -158,6 +158,19 @@ button span {
     margin-bottom: var(--spacing);
 }
 
+.largeFont {
+    border-left: 6px solid var(--leaf_green);
+    border-right: 6px solid var(--leaf_green);
+    border-radius: 10px;
+    padding-left: var(--spacing);
+}
+
+.largeFont .postBody,
+.largeFont .postFooter
+{
+    font-size: 18px;
+}
+
 .postActionContainer {
     padding-left: 60px;
     font-size: 13px;

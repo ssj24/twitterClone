@@ -83,12 +83,20 @@ $(document).on("click", ".retweetButton", event => {
     })
 })
 
+$(document).on("click", ".post", event => {
+    const element = $(event.target);
+    const postId = getPostIdFromElement(element);
+    if (postId !== undefined && !element.is("button")) {
+        window.location.href = `/post/${postId}`;
+    }
+})
+
 $("#replyModal").on("show.bs.modal", event => {
     const button = $(event.relatedTarget);
     const postId = getPostIdFromElement(button);
     $("#submitReplyButton").data("id", postId);
     $.get(`/api/posts/${postId}`, results => {
-        outputPosts(results, $("#originalPostContainer"))
+        outputPosts(results.postData, $("#originalPostContainer"))
     })
 })
 
@@ -102,7 +110,7 @@ function getPostIdFromElement(element) {
     return postId;
 }
 
-function createPostHtml(postData) {
+function createPostHtml(postData, largeFont = false) {
     if (postData == null) return alert("post object is null");
     const isRetweet = postData.retweetData !== undefined;
     const retweetedBy = isRetweet ? postData.postedBy.username : null;
@@ -112,14 +120,15 @@ function createPostHtml(postData) {
     const timestamp = timeDifference(new Date(), new Date(postData.createdAt));
     const likeButtonActiveClass = postData.likes.includes(userLoggedIn._id) ? "active" : "";
     const retweetButtonActiveClass = postData.retweetUsers.includes(userLoggedIn._id) ? "active" : "";
-    
+    const largeFontClass = largeFont ? "largeFont" : "";
+
     let retweetText = '';
     if (isRetweet) {
         retweetText = `<i class="fas fa-retweet"></i>&nbsp;<span>Retweeted by <a href='/profile/${retweetedBy}'>@${retweetedBy}</a></span>`
     }
 
     let replyFlag = "";
-    if (postData.replyTo) {
+    if (postData.replyTo && postData.replyTo._id) {
         if (!postData.replyTo.postedBy._id) return alert("Reply to is not populated");
         const replyToUsername = postData.replyTo.postedBy.username;
         replyFlag = `
@@ -129,7 +138,7 @@ function createPostHtml(postData) {
         `;
     }
     return `
-    <div class="post" data-id="${postData._id}">
+    <div class="post ${largeFontClass}" data-id="${postData._id}">
         <div class="postActionContainer">
             ${retweetText}
         </div>
@@ -221,4 +230,20 @@ function outputPosts(results, container) {
     if (!results.length) {
         container.append("<span class='noResults'>Nothing to show.</span>");
     }
+}
+
+function outputPostsWithReplies(results, container) {
+    container.html("");
+    if (results.replyTo !== undefined && results.replyTo._id !== undefined) {
+        const html = createPostHtml(results.replyTo);
+        container.append(html);
+
+    }
+    const mainPostHtml = createPostHtml(results.postData, true);
+    container.append(mainPostHtml);
+
+    results.replies.forEach(result => {
+        const html = createPostHtml(result)
+        container.append(html);
+    });
 }

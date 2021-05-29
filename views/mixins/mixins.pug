@@ -26,3 +26,22 @@ mixin createReplyModal(userLoggedIn)
                             textarea#replyTextarea(placeholder="What's happening?")
                 .modal-footer
                     button#submitReplyButton.postButton(type='button', disabled="") Reply
+
+mixin createDeletePostModal()
+    #deletePostModal.modal.fade(tabindex='-1', role='dialog', aria-labelledby='deletePostModalLabel', aria-hidden='true')
+        .modal-dialog(role='document')
+            .modal-content
+                .modal-header
+                    img(src="/images/leaf.png", alt="")
+
+                    h5#deletePostModalLabel.modal-title Delete the post?
+                    button.close(type='button', data-dismiss='modal', aria-label='Close')
+                        span(aria-hidden='true') &times;
+                .modal-body
+                    p You won't be able to delete this
+                .modal-footer
+                    button#deletePostButton.postButton(type='button') Delete
+
+mixin createPostModals(userLoggedIn)
+    +createReplyModal(userLoggedIn)
+    +createDeletePostModal()

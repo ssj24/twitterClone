@@ -106,6 +106,17 @@ router.get("/:id", async (req, res, next) => {
 
 });
 
+router.delete("/:id", (req, res, next) => {
+    Post.findByIdAndDelete(req.params.id)
+    .then(() => {
+        res.sendStatus(202);
+    })
+    .catch(error => {
+        console.log(error);
+        res.sendStatus(400);
+    })
+});
+
 async function getPosts(filter) {
     let results = await Post.find(filter)
     .populate("postedBy")

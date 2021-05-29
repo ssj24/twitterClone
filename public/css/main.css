@@ -180,7 +180,6 @@ button span {
 .mainContentContainer {
     flex: 1;
     display: flex;
-
 }
 
 .postContentContainer {
@@ -188,6 +187,10 @@ button span {
     display: flex;
     flex-direction: column;
     flex: 1;
+}
+
+.postHeader {
+    display: flex;
 }
 
 .postHeader a,
@@ -206,6 +209,18 @@ button span {
 .username,
 .date {
     color: var(--grey_text);
+}
+
+.date {
+    flex: 1;
+}
+
+.deletePostButton {
+    margin-right: var(--spacing);
+}
+
+.deletePostButton:hover {
+    color: red;
 }
 
 .replyFlag {
@@ -273,4 +288,8 @@ button span {
 .modal-title {
     display: center;
     align-self: center;
+}
+
+.modal-header .close:hover {
+    color: red;
 }

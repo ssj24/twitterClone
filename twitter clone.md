@@ -2177,8 +2177,259 @@
    27. profile page
 
        - profile route
+
+         - routes/profileRoutes.js
+
+           ```js
+           router.get("/", (req, res, next) => {
+           	const payload = {
+                   pageTitle: req.session.user.username,
+                   userLoggedIn: req.session.user,
+                   userLoggedInJS: JSON.stringify(req.session.user),
+                   profileUser: req.session.user
+               }
+               
+               res.status(200).render("profilePage", payload);
+           });
+           router.get("/:username", async (req, res, next) => {
+           	const payload = await getPayload(req.params.username, req.session.user);
+               res.status(200).render("profilePage", payload);
+           });
+           
+           async function getPayload(username, userLoggedIn) {
+               let user = await User.findOne({ username: username });
+               if (user == null) {
+                   user = await User.findById(username);
+                   if (user == null) {
+                       return {
+                           pageTitle: "User not found",
+                           userLoggedIn: userLoggedIn,
+                           userLoggedInJS: JSON.stringify(userLoggedIn),
+                       };
+                   }
+               }
+               return {
+                   pageTitle: user.username,
+                   userLoggedIn: userLoggedIn,
+                   userLoggedInJS: JSON.stringify(userLoggedIn),
+                   profileUser: user
+               };
+           }
+           ```
+
+           - first get request is for my own profile page
+
+           - there was an error again related to promise.
+
+             REMEMBER when you use async-await in function or whatever, you need to use async-await again when you call that function or whatever in another function.
+
+           - if you couldn't find the user by username, just check if there is user with the id.
+
+             BUT, it gives me an error `UnhandledPromiseRejectionWarning: CastError: Cast to ObjectId failed for value`. Because username I gave in the url was like `dkdkk`. and mongoose won't take it as a ObjectId. 
+
+             how to fix?
+
+             ```js
+             if (id.match(/^[0-9a-fA-F]{24}$/)) {
+               // Yes, it's a valid ObjectId, proceed with `findById` call.
+             }
+             ```
+
+             wrap the findById code with this if phrase
+
+         - app.js
+
+           ```js
+           const profileRoute = require("./routes/profileRoutes");
+           app.use("/profile", middleware.requireLogin, profileRoute);
+           ```
+
        - profile page
-       - 
+
+         - views/profilePgae.pug
+
+           ```pug
+           span #{profileUser ? profileUser.firstName : ""}
+           ```
+
+           ```pug
+           if !profileUser
+           	h1 User not found 
+           else 
+           	span #{profileUser.firstName}
+           ```
+
+           choose either way.
+
+           by #{}, you could use js grammer
+
+           you could use if/else phrase in pug
+
+           - how to add br tag in .pug
+
+             1. ```pug
+                div.
+                	I'd like to break #[br] line.
+                ```
+
+                add `#[br]`
+
+                The dot at the end of the tag is used to enter large blocks of plain text in a simpler way, so the following indented block is treated as text. #[br] will work without the dot at the end.
+
+             2. ```pug
+                div Av José Vasconcelos 804-A Pte.
+                  br
+                  | Col. Los Sabinos,CP. 66220
+                  
+                div
+                	| Av Jose
+                	br
+                	| Col. Los
+                ```
+
+       - make follow button with mixin
+
+         ```pug
+         mixin createFollowButton(user, isFollowing)
+             - text = isFollowing ? "Following" : "Follow"
+             - buttonClass = isFollowing ? "followButton following" : "followButton"
+             button(class=buttonClass, data-user=user._id) #{text}
+         ```
+
+         `-` makes variable in pug file
+
+         you could add class like that in pug
+
+         add `+createFollowButton(profileUser, true)` in profilePage.pug
+
+       - make tabs with mixin
+
+         ```pug
+         mixin createTab(name, href, isSelected)
+             - className = isSelected ? "tab active" : "tab"
+             a(href=href, class = className)
+                 span #{name}
+         ```
+
+       - load posts
+
+         - profilePage.pug
+
+           ```pug
+           script.
+           			const profileUserId = `!{profileUser._id}`;
+           ```
+
+           to use at profie.js
+
+         - public/js/profile.js
+
+           ```js
+           $(document).ready(() => {
+               loadPosts();
+           });
+           
+           function loadPosts() {
+               $.get("/api/posts", { postedBy: profileUserId }, results => {
+                   outputPosts(results, $(".postsContainer"));
+               })
+           }
+           ```
+
+           it displays all posts
+
+           how to fix it?(update the get request at posts.js)
+
+           ```js
+           // posts.js
+           router.get("/", async (req, res, next) => {
+               const searchObj = req.query;
+               const results = await getPosts(searchObj);
+               res.status(200).send(results);
+           });
+           ```
+
+         - separate the replies
+
+           update the loadPosts() in profile.js
+
+           ```js
+           $.get("/api/posts", { postedBy: profileUserId, isReply: false }, results => {
+           ```
+
+           and update posts.js
+
+           ```js
+           router.get("/", async (req, res, next) => {
+               const searchObj = req.query;
+               if (searchObj.isReply !== undefined) {
+                   const isReply = searchObj.isReply == "true";
+                   searchObj.replyTo = { $exists: isReply };
+                   delete searchObj.isReply;
+               }
+               const results = await getPosts(searchObj);
+               res.status(200).send(results);
+           });
+           ```
+
+           if searchObj.isReply's value equals "true", isReply's value is true.
+
+           searchObj.replyTo's existance is depend on the isReply value.
+
+           because isReply is not in the postSchema, you need to delete it before getPosts() filter it.
+           that's the way to delete the property of javascript object.
+
+           if you change the isReply value as true, you could see the replies only -> that's how to make replies tab
+
+         - Replies tab
+
+           - profileRoutes.js
+
+             ```js
+             router.get("/:username/replies", async (req, res, next) => {
+             	const payload = await getPayload(req.params.username, req.session.user);
+                 payload.selectedTab = "replies";
+                 res.status(200).render("profilePage", payload);
+             });
+             ```
+
+           - profilePage.pug
+
+             another variable under the script. `selectedTab`
+
+             ```pug
+             script.
+               const profileUserId = `!{profileUser._id}`;
+               const selectedTab = `!{selectedTab}`;
+               
+             .tabsContainer 
+               +createTab("Posts", `/profile/${profileUser.username}`, selectedTab != "replies")
+               +createTab("Replies", `/profile/${profileUser.username}/replies`, selectedTab == "replies")
+             ```
+
+             if there is third tab, you need to change it like below.
+
+             +tabs("posts", ..., selectedTab != "replies" && selectedTab != "messages")
+
+             +tabs("replies", ..., selectedTab == "replies")
+
+             +tabs("messages", ..., selectedTab == "messages")
+
+             :wrench: why it needed to be reloaded?
+
+           - profile.js
+
+             ```js
+             $(document).ready(() => {
+                 if (selectedTab === "replies") {
+                     loadReplies();
+                 } else {
+                 loadPosts();
+                 }
+             });
+             ```
+
+             make loadReplies() which is identical with loadPosts() but isReply is true.
 
    28. follow
 

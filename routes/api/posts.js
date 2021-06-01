@@ -9,9 +9,16 @@ app.use(express.urlencoded({
 }));
 
 router.get("/", async (req, res, next) => {
-    const results = await getPosts({});
+    const searchObj = req.query;
+    if (searchObj.isReply !== undefined) {
+        const isReply = searchObj.isReply == "true";
+        searchObj.replyTo = { $exists: isReply };
+        delete searchObj.isReply;
+    }
+    const results = await getPosts(searchObj);
     res.status(200).send(results);
 });
+
 router.post("/", async (req, res, next) => {
     if (!req.body.content) {
         console.log("Content param not sent with request");

@@ -2,6 +2,7 @@
     --leaf_green: #04802d;
     --light_green: #97d58a;
     --pale_green: #e2f2e7;
+    --maybe_green: #e2f2e7a7;
     --light_grey: #e6ecf0;
     --spacing: 15px;
     --grey_text: #657786;
@@ -203,7 +204,7 @@ button span {
 }
 
 .displayName:hover {
-    text-decoration: underline;
+    text-shadow: 1px 3px var(--pale_green);
 }
 
 .username,
@@ -292,4 +293,104 @@ button span {
 
 .modal-header .close:hover {
     color: red;
+}
+
+.no-result {
+    padding: var(--spacing);
+}
+
+.profileHeaderContainer .coverPhotoContainer {
+    height: 180px;
+    background-color: var(--leaf_green);
+    position: relative;
+}
+
+.profileHeaderContainer .userImageContainer {
+    height: 132px;
+    width: 132px;
+    margin-left: var(--spacing);
+    position: absolute;
+    bottom: -66px;
+}
+
+.profileHeaderContainer .userImageContainer img {
+    border: 4px solid var(--maybe_green);
+}
+
+.profileHeaderContainer .profileButtonsContainer {
+    text-align: right;
+    padding: var(--spacing);
+    min-height: 66px;
+}
+
+.profileButton,
+.followButton {
+    border: 1px solid var(--leaf_green);
+    color: var(--leaf_green);
+    font-weight: bold;
+    padding: 5px 15px;
+    border-radius: 60px;
+    display: inline-block;
+    margin-left: var(--spacing);
+}
+
+.profileButton:hover,
+.followButton:hover {
+    color: var(--leaf_green);
+    background-color: var(--pale_green);
+}
+
+.followButton.following {
+    background-color: var(--leaf_green);
+    color: white;
+}
+
+.profileHeaderContainer .userDetailsContainer {
+    display: flex;
+    flex-direction: column;
+    padding: 0 var(--spacing);
+}
+
+.followersContainer .value {
+    font-weight: bold;
+    margin-right: 5px;
+}
+
+.followersContainer span:not(.value) {
+    color: var(--grey_text);
+}
+
+.followersContainer a {
+    margin-right: var(--spacing);
+}
+
+.followersContainer a:hover {
+    background-color: var(--maybe_green);
+    border-radius: 50%;
+}
+
+.tabsContainer {
+    display: flex;
+    border-bottom: 1px solid var(--light_grey);
+    flex-shrink: 0;
+}
+
+.tab {
+    flex: 1;
+    height: 52px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--grey_text);
+    font-weight: bold;
+}
+
+.tab.active {
+    color: var(--leaf_green);
+    border-bottom: 2px solid var(--leaf_green);
+}
+
+.tab:hover {
+    color: var(--leaf_green);
+    background-color: var(--pale_green);
 }

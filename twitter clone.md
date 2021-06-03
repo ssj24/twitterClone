@@ -2428,7 +2428,107 @@
 
      make loadReplies() which is identical with loadPosts() but isReply is true.
 
+   +) Since bootstrap row class sets margin-right -15px, it is not right(unnecessary scroll at the bottom). just set it 0
+
 ## Follow
+
+1. Update UserSchema.js
+
+   following: [{type: Schema.Types.ObjectId, ref: 'User' }],
+
+   followers: [{type: Schema.Types.ObjectId, ref: 'User' }],
+
+   you could use only following field and when you need followers just find it. but that will cost expensive.
+
+2. Follow button
+
+   - get the user id when click it
+
+     ```js
+     // common.js
+     $(document).on("click", ".followButton", event => {
+         const button = $(event.target);
+         const userId = button.data().user;
+       	console.log(userId);
+     });
+     ```
+
+     - `button.data().user`: user here is what you set at the mixin.pug - createFollowButton
+     - just remember to check the data all the time! if you don't do this now, it's hard to figure out later.
+
+   - ajax call
+
+     - common.js
+
+       ```js
+       $(document).on("click", ".followButton", event => {
+           const button = $(event.target);
+           const userId = button.data().user;
+           
+           $.ajax({
+               url: `/api/users/${userId}/follow`,
+               type: "PUT",
+               success: data => {
+                   console.log(data);
+               }
+           })
+       });
+       ```
+
+       since it's updating the data, type is PUT
+
+     - routes/api/users.js: make end point
+
+       ```js
+       router.put("/:userId/follow", async (req, res, next) => {
+           res.status(200).send("fly away");
+       });
+       ```
+
+       - add usersApiRoute at app.js
+
+   - check if the user is already following the person
+
+     ```js
+     // users.js
+     router.put("/:userId/follow", async (req, res, next) => {
+         const userId = req.params.userId;
+     
+         const user = await User.findById(userId);
+         if (user == null) return res.sendStatus(404);
+         
+         const isFollowing = user.followers && user.followers.includes(req.session.user._id);
+     
+         res.status(200).send(isFollowing);
+     });
+     ```
+
+   - follow/unfollow
+
+     same logic with like/unlike post
+
+     but follow feature needs both following and followers need to be updated.
+
+     ```js
+     // users.js
+     req.session.user = await User.findByIdAndUpdate(req.session.user._id, { [option]: { following: userId } }, { new: true })
+         .catch(error => {
+             console.log(error);
+             res.sendStatus(400);
+         })
+     
+         User.findByIdAndUpdate(userId, { [option]: { followers: req.session.user._id } })
+         .catch(error => {
+             console.log(error);
+             res.sendStatus(400);
+         })
+     ```
+
+     you don't need `new:  true` with followers updating, because you will not use the result data.
+
+   
+
+3. d
 
 ## Profile Picture
 

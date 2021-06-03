@@ -13,7 +13,7 @@ $("#postTextarea, #replyTextarea").keyup(event => {
     }
 
     submitButton.prop("disabled", false);
-})
+});
 
 $("#submitPostButton, #submitReplyButton").click(event => {
     const button = $(event.target);
@@ -43,7 +43,7 @@ $("#submitPostButton, #submitReplyButton").click(event => {
             button.prop("disabled", true);
         }
     })
-})
+});
 
 $(document).on("click", ".likeButton", event => {
     const button = $(event.target);
@@ -62,7 +62,7 @@ $(document).on("click", ".likeButton", event => {
             }
         }
     })
-})
+});
 
 $(document).on("click", ".retweetButton", event => {
     const button = $(event.target);
@@ -81,7 +81,7 @@ $(document).on("click", ".retweetButton", event => {
             }
         }
     })
-})
+});
 
 $(document).on("click", ".post", event => {
     const element = $(event.target);
@@ -89,7 +89,20 @@ $(document).on("click", ".post", event => {
     if (postId !== undefined && !element.is("button")) {
         window.location.href = `/post/${postId}`;
     }
-})
+});
+
+$(document).on("click", ".followButton", event => {
+    const button = $(event.target);
+    const userId = button.data().user;
+    
+    $.ajax({
+        url: `/api/users/${userId}/follow`,
+        type: "PUT",
+        success: data => {
+            console.log(data);
+        }
+    })
+});
 
 $("#replyModal").on("show.bs.modal", event => {
     const button = $(event.relatedTarget);
@@ -98,15 +111,15 @@ $("#replyModal").on("show.bs.modal", event => {
     $.get(`/api/posts/${postId}`, results => {
         outputPosts(results.postData, $("#originalPostContainer"))
     })
-})
+});
 
-$("#replyModal").on("hidden.bs.modal", () => $("#originalPostContainer").html(""))
+$("#replyModal").on("hidden.bs.modal", () => $("#originalPostContainer").html(""));
 
 $("#deletePostModal").on("show.bs.modal", event => {
     const button = $(event.relatedTarget);
     const postId = getPostIdFromElement(button);
     $("#deletePostButton").data("id", postId);
-})
+});
 
 $("#deletePostButton").click(event => {
     const postId = $(event.target).data("id");
@@ -122,7 +135,7 @@ $("#deletePostButton").click(event => {
             location.reload();
         }
     })
-})
+});
 
 function getPostIdFromElement(element) {
     const isRoot = element.hasClass("post");

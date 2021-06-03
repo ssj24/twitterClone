@@ -72,6 +72,10 @@ button span {
     pointer-events: none;
 }
 
+.wrapper > .row {
+    margin: 0;
+}
+
 .mainSectionContainer {
     padding: 0;
     border-left: 1px solid var(--pale_green);

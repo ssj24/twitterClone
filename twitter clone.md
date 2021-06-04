@@ -2526,9 +2526,330 @@
 
      you don't need `new:  true` with followers updating, because you will not use the result data.
 
-   
+3. change the button
 
-3. d
+   - common.js
+
+     ```js
+     $(document).on("click", ".followButton", event => {
+         const button = $(event.target);
+         const userId = button.data().user;
+         
+         $.ajax({
+             url: `/api/users/${userId}/follow`,
+             type: "PUT",
+             success: (data, status, xhr) => {
+                 if (xhr.status == 404) {
+                     return;
+                 }
+               	if (data.following && data.following.includes(userId)) {
+                     button.addClass("following");
+                 } else {
+                     button.removeClass("following");
+                 }
+             }
+         })
+     });
+     ```
+
+     :wrench: if you want to show users the user you want to follow is not exist, do something at `if (xhr.status == 404)`.
+
+   - profilePage.pug
+
+     ```pug
+     .profileButtonsContainer 
+       if profileUser._id != userLoggedIn._id 
+      	 	a.profileButton(href=`/messages/${profileUser._id}`)
+       		i.fas.fa-envelope
+       	- const profileUserId = profileUser._id.toString()
+       	- if (userLoggedIn.following && userLoggedIn.following.includes(profileUserId))
+       		+createFollowButton(profileUser, true)
+       	- else 
+       		+createFollowButton(profileUser, false)
+     ```
+
+     I'd like to check the if clause(that is this user follows the profilePage's user) which needs `includes` method. but with pug, I couldn't use includes. so I need to use js code.
+
+     if you want to use js code in pug, add `dash + space` in front of the js code.
+
+     and since it is js code from there, parenthesis is needed.
+
+     what I need to pass to the includes is profileUser._id. but it is not string, so change it by another js code.
+
+     So far, color is changing but text is not change immediately(it changes when refresh the page)
+
+     add `button.text("following")/("follow")` at the common.js
+
+4. following/followers count
+
+   - profilePage.pug: add an id to the span
+
+     ```pug
+     .followersContainer 
+                         a(href=`/profile/${profileUser.username}/following`)
+     	span#followingValue.value #{0}
+     	span Following
+                         a(href=`/profile/${profileUser.username}/followers`)
+     	span#followersValue.value #{0}
+     	span Followers
+     ```
+
+   - common.js: update ajax call
+
+     ```js
+     const followersLabel = $("#followersValue");
+     if (followersLabel.length != 0) {
+       followersLabel.text("hi");
+     }
+     ```
+
+     if you click the follow button(or following whichever), the text before followers changes to hi.
+
+     ```js
+     let difference = 1;
+     if (data.following && data.following.includes(userId)) {
+       button.addClass("following");
+       button.text("Following");
+     } else {
+       button.removeClass("following");
+       button.text("Follow");
+       difference = -1;
+     }
+     const followersLabel = $("#followersValue");            
+     if (followersLabel.length != 0) {
+       let followersText = parseInt(followersLabel.text());
+       followersLabel.text(followersText + difference);
+     }
+     ```
+
+     difference var change to -1 when you are unfollow the profileUser.
+
+     by set difference var, changing text command looks cool.
+
+   - profilePage.pug: render the followers/following count at first.
+
+     ```pug
+     - const followingCount = profileUser.following.length;
+     - const followersCount = profileUser.followers.length;
+     
+     .followersContainer 
+       a(href=`/profile/${profileUser.username}/following`)
+         span#followingValue.value {followingCount}
+         span Following
+       a(href=`/profile/${profileUser.username}/followers`)
+         span#followersValue.value #{followersCount}
+         span Followers
+     ```
+
+     I don't know why.. but even if without declaration of variable or semicolon at the end like below, it is working.
+
+     `- followersCount = profileUser.followers.length`
+
+5. following/followers page
+
+   - views/follow.pug: create page
+
+     ```pug
+     extends layouts/main-layout.pug
+     
+     block content 
+         if !profileUser
+             .no-result.
+                 there is no corresponding user. #[br]check the url you are trying to access
+         else
+             script.
+                 const profileUserId = `!{profileUser._id}`;
+                 const selectedTab = `!{selectedTab}`;
+             .tabsContainer 
+                 +createTab("Following", `/profile/${profileUser.username}/following`, selectedTab != "followers")
+                 +createTab("Followers", `/profile/${profileUser.username}/followers`, selectedTab == "followers")
+             .resultsContainer
+     
+     block scripts 
+         script(src="/js/follow.js")
+     ```
+
+   - profileRoutes.js
+
+     ```js
+     router.get("/:username/following", async (req, res, next) => {
+     	const payload = await getPayload(req.params.username, req.session.user);
+         payload.selectedTab = "following";
+         res.status(200).render("follow", payload);
+     });
+     
+     router.get("/:username/followers", async (req, res, next) => {
+     	const payload = await getPayload(req.params.username, req.session.user);
+         payload.selectedTab = "followers";
+         res.status(200).render("follow", payload);
+     });
+     ```
+
+     now, when you click the follow
+
+   - public/js/follow.js: get the users
+
+     ```js
+     $(document).ready(() => {
+       if (selectedTab === "followers") {
+         loadFollowers();
+       } else {
+         loadFollowing();
+       }
+     });
+     
+     function loadFollowers() {
+       $.get(`/api/users/${profileUserId}/followers`, results => {
+         outputUsers(results, $(".resultsContainer"));
+       })
+     }
+     
+     function loadFollowing() {
+       $.get(`/api/users/${profileUserId}/following`, results => {
+         outputUsers(results, $(".resultsContainer"));
+       })
+     }
+     
+     function outputUsers(data, container) {
+       console.log(data);
+     }
+     ```
+
+     - users.js: handle the request
+
+       ```js
+       router.get("/:userId/following", async (req, res, next) => {
+           User.findById(req.params.userId)
+           .populate("following")
+           .then(results => {
+               res.status(200).send(results);
+           })
+           .catch(error => {
+               console.log(error);
+               res.sendStatus(400);
+           })
+       });
+       ```
+
+       above code is same for followers url
+
+       you could send results.following/results.followers instend of results.
+
+       Or when you call outputUsers at follow.js pass the argument results.following/results.followers.
+
+     - update outputUsers()
+
+       ```js
+       function outputUsers(results, container) {
+           container.html("");
+           results.forEach(result => {
+               const html = createUserHtml(result, true);
+               container.append(html);
+           });
+       
+           if (results.length == 0) {
+               container.append("<span class='noResults'>No results found</span>")
+           }
+       }
+       
+       function createUserHtml(userData, showFollowButton) {
+           const name = userData.firstName + " " + userData.lastName;
+           return `
+           <div class="user">
+               <div class="userImageContainer">
+                   <img src="${userData.profilePic}">
+               </div>
+               <div class="userDetailsContainer">
+                   <div class="header">
+                       <a href="/profile/${userData.username}">${name}</a>
+                       <span class="username">@${userData.username}</span>
+                   </div>
+               </div>
+           </div>
+           `;
+       }
+       ```
+
+       createUserHtml's 2nd parameter, showFollowButton, will be used later when the function is called under different circumstance.
+
+       :star:Try to use these small reusable functions!
+
+       
+
+6. add the follow button to the user list
+
+   update createUserHtml()
+
+   ```js
+   const isFollowing = userLoggedIn.following && userLoggedIn.following.includes(userData._id);
+       const text = isFollowing ? "Following" : "Follow";
+       const buttonClass = isFollowing ? "followButton following" : "followButton";
+       let followButton = "";
+       if (showFollowButton && userLoggedIn._id != userData._id) {
+           followButton = `
+           <div class="followButtonContainer">
+               <button class="${buttonClass}" data-user="${userData._id}">${text}</button>
+           </div>
+           `;
+       }
+   ```
+
+   since it's follow button like in other pages, go to the mixins.pug and make sure you have same properties.
+
+   isFollowing declaration comes from profilePage.pug
+
+   and inside of return text after .userDetailsContainer div insert `${followButton}`
+
+7. display following people's post only at home
+
+   - home.js
+
+     ```js
+     $.get("/api/posts", { followingOnly: true }, results => {
+     ```
+
+     {} is how you pass the data through ajax call.
+
+   - posts.js: update get posts reqest...(umm.. get posts response..?)
+
+     ```js
+     if (searchObj.followingOnly !== undefined) {
+             const followingOnly = searchObj.followingOnly == "true";
+             if (followingOnly) {
+                 let objectIds = req.session.user.following;
+                 objectIds.push(req.session.user._id);
+                 searchObj.postedBy = { $in: objectIds };
+             }
+             delete searchObj.followingOnly;
+     ```
+
+     by push my own id, I could see my own post at home feed
+
+     `        searchObj.postedBy = { $in: objectIds };`: only if searchObj's postedBy is in objectIds array.(ObjectIds var is array because req.session.user.following is array(that's what we set at the UserSchema))
+
+     As in isReply right above(in the code), searchObj.followingOnly is need to be deleted cause UserSchema doesn't have such field.
+
+8. :bug: if you click the profile at the nav, it renders my profile page. and it does add the following number text. 
+
+   it's because as we update get posts request, we add our own id to objectIds.
+
+   that makes it count you.(actually.. I don't get it.. is it shallow copy/ deep copy thing..? but though it add count, refresh the page make count normal.... )
+
+   fix it
+
+   ```js
+   let objectIds = [];
+   if (!req.session.user.following) {
+     req.session.user.following = [];
+   }
+   req.session.user.following.forEach(user => {
+     objectIds.push(user);
+   })
+   objectIds.push(req.session.user._id);
+   searchObj.postedBy = { $in: objectIds };
+   ```
+
+   if phrase is for prevent error. if user doesn't have following forEach method will cause error. so make sure it is array.
 
 ## Profile Picture
 

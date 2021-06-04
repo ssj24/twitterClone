@@ -299,8 +299,9 @@ button span {
     color: red;
 }
 
-.no-result {
+.noResults {
     padding: var(--spacing);
+    display: flex;
 }
 
 .profileHeaderContainer .coverPhotoContainer {
@@ -397,4 +398,20 @@ button span {
 .tab:hover {
     color: var(--leaf_green);
     background-color: var(--pale_green);
+}
+
+.resultsContainer {
+    display: flex;
+    flex-direction: column;
+}
+
+.resultsContainer .user {
+    padding: var(--spacing);
+    display: flex;
+    border-bottom: 1px solid var(--maybe_green);
+}
+
+.user .userDetailsContainer {
+    flex: 1;
+    padding: 0 var(--spacing);
 }

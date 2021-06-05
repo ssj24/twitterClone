@@ -2853,6 +2853,51 @@
 
 ## Profile Picture
 
+1. picture upload button
+
+   - profilePage.pug
+
+     ```pug
+     .userImageContainer 
+     	img(src=profileUser.profilePic, alt="user profile image")
+     	if profileUser._id == userLoggedIn._id 
+     		button.profilePictureButton(data-toggle="modal", data-target="#imageUploadModal")
+     			i.fas.fa-camera
+     ```
+
+     
+
+2. image upload modal
+
+   - mixins.pug
+
+     ```pug
+     mixin createImageUploadModal()
+         #imageUploadModal.modal.fade(tabindex='-1', role='dialog', aria-labelledby='imageUploadModalLabel', aria-hidden='true')
+             .modal-dialog(role='document')
+                 .modal-content
+                     .modal-header
+                         img(src="/images/leaf.png", alt="")
+     
+                         h5#imageUploadModalLabel.modal-title Upload a new profile picture
+                         button.close(type='button', data-dismiss='modal', aria-label='Close')
+                             span(aria-hidden='true') &times;
+                     .modal-body
+                         p You won't be able to delete this
+                     .modal-footer
+                         button#imageUploadButton.postButton(type='button') Save
+     ```
+
+     almost identical with createDeletePostModal()
+
+   - profilePage.pug
+
+     ```pug
+     +createImageUploadModal()
+     ```
+
+3. 
+
 ## Cover Photo
 
 ## Pin a Post

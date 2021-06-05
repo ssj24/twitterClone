@@ -55,3 +55,18 @@ mixin createTab(name, href, isSelected)
     - const className = isSelected ? "tab active" : "tab"
     a(href=href, class = className)
         span #{name}
+
+mixin createImageUploadModal()
+    #imageUploadModal.modal.fade(tabindex='-1', role='dialog', aria-labelledby='imageUploadModalLabel', aria-hidden='true')
+        .modal-dialog(role='document')
+            .modal-content
+                .modal-header
+                    img(src="/images/leaf.png", alt="")
+
+                    h5#imageUploadModalLabel.modal-title Upload a new profile picture
+                    button.close(type='button', data-dismiss='modal', aria-label='Close')
+                        span(aria-hidden='true') &times;
+                .modal-body
+                    p You won't be able to delete this
+                .modal-footer
+                    button#imageUploadButton.postButton(type='button') Save

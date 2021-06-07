@@ -2896,7 +2896,261 @@
      +createImageUploadModal()
      ```
 
-3. 
+3. cropper js
+
+   https://www.npmjs.com/package/cropperjs
+
+   - cropper js cdn, main-layout.pug
+
+     since we could use image upload elsewhere not only profilePage, script is added to the main-layout.
+
+     ```html
+     <!-- before bootstrap stylesheet -->
+     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.11/cropper.min.css" integrity="sha512-NCJ1O5tCMq4DK670CblvRiob3bb5PAxJ7MALAz2cV40T9RgNMrJSAwJKy0oz20Wu7TDn9Z2WnveirOeHmpaIlA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+     
+     <!-- after bootstrap jquery -->
+     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.11/cropper.min.js" integrity="sha512-FHa4dxvEkSR0LOFH/iFH0iSqlYHf/iTwLc5Ws/1Su1W90X0qnxFxciJimoue/zyOA/+Qz/XQmmKqjbubAAzpkA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+     ```
+
+     ```css
+     /* Ensure the size of the image fit the container perfectly */
+     img {
+       display: block;
+       /* This rule is very important! */
+       max-width: 100%;
+     }
+     ```
+
+   - load the image preview
+
+     mixins.pug: put image upload feature where it will rendered
+
+     ```pug
+     .modal-body
+       input#filePhoto(type="file", name="filePhoto")
+       .imagePreviewContainer
+       	img#imagePreview(src="", alt="")
+     
+     ```
+
+     common.js
+
+     ```js
+     $("#filePhoto").change(event => {
+         const input = $(event.target)[0];
+         if (input.files && input.files[0]) {
+             const reader = new FileReader();
+             reader.onload = () => {
+                 console.log("loaded");
+             }
+             reader.readAsDataURL(input.files[0]);
+         }
+     })
+     ```
+
+     at first: `const input = $(event.target);`
+
+     then it throws an error, because input.files is undefined.
+
+     input[0].files worked. so I declare the input with [0]
+
+     BUT, if you change the function from arrow to regular and replace event with this like below, it works too..!
+
+     ```js
+     $("#filePhoto").change(function() {
+         if (this.files && this.files[0]) {
+             const reader = new FileReader();
+             reader.onload = () => {
+                 console.log("loaded");
+             }
+             reader.readAsDataURL(this.files[0]);
+         }
+     })
+     ```
+
+     SO... choose either one. I'll go to the first one.
+
+     ------
+
+     update the function to load the preview
+
+     ```js
+     reader.onload = (e) => {
+       $("#imagePreview").attr("src", e.target.result); 
+     }
+     ```
+
+     now you could see the preview
+
+   - crop it
+
+     ```js
+     // common.js
+     // at the top
+     let cropper;
+     
+     ...
+     
+     reader.onload = (e) => {
+       const image = document.getElementById("imagePreview");
+       image.src = e.target.result;
+       if (cropper !== undefined) {
+         cropper.destroy();
+       }
+       cropper = new Cropper(image, {
+         aspectRatio: 1 / 1,
+         background: false
+       })
+     }
+     ```
+
+     `$("#imagePreview").attr("src", e.target.result); ` 
+     == `const image = document.getElementById("imagePreview");`
+     ` image.src = e.target.result;`
+
+   - image to a blob
+
+     blob: Binary Large OBject
+
+     ```js
+     $("#imageUploadButton").click(() => {
+         const canvas = cropper.getCroppedCanvas();
+         if (canvas == null) return alert("Could not upload image.");
+         canvas.toBlob(blob => {
+             const formData = new FormData();
+             formData.append("croppedImage", blob);
+             console.log(formData);
+         })
+     })
+     ```
+
+     
+
+   - ajax call
+
+     ```js
+     // common.js
+     $("#imageUploadButton").click(() => {
+         const canvas = cropper.getCroppedCanvas();
+         if (canvas == null) return alert("Could not upload image.");
+         canvas.toBlob(blob => {
+             const formData = new FormData();
+             formData.append("croppedImage", blob);
+             $.ajax({
+                 url: "/api/users/profilePicture",
+                 type: "POST",
+               	data: formData,
+                 processData: false,
+                 contentType: false,
+                 success: () => {
+                     location.reload();
+                 }
+             })
+         })
+     })
+     ```
+
+     `processData: false` Not to convert form data to String.
+
+     `contentType: false` forces jQuery not to add a contentType header with its request. without this option, jQuery add a contentType header itself. which is `boundary string`. 
+
+   - access the image on the server
+
+     - npm install multer
+
+       multer is middleware: insert between url and (req, res, next) like middleware.requireLogin
+
+     ```js
+     // users.js
+     const multer = require("multer");
+     const upload = multer({ dest: "uploads/" });
+     
+     router.post("/profilePicture", upload.single("croppedImage"), async (req, res, next) => {
+         if (!req.file) {
+             console.log("No file uploaded with ajax request.")
+             return res.sendStatus(400);
+         }
+         res.sendStatus(200);
+     });
+     ```
+
+     dest is for destination.
+
+     and make that destination folder at root folder.
+
+     `upload.single("croppedImage")`: single is multer's function which processes a single file from what's passed. croppedImage is what you send at common.js If you need to handle multiple files use `upload.array()` instead.
+
+     just by far, if you click the save button, it stores a file(not image) in uploads folder.
+
+   - store the uploaded image
+
+     ```js
+     const path = require("path");
+     const fs = require("fs");
+     
+     router.post("/profilePicture", upload.single("croppedImage"), async (req, res, next) => {
+         if (!req.file) {
+             console.log("No file uploaded with ajax request.")
+             return res.sendStatus(400);
+         }
+         const filePath = `/uploads/images/${req.file.filename}.png`;
+         const tempPath = req.file.path;
+         const targetPath = path.join(__dirname, `../../${filePath}`);
+         fs.rename(tempPath, targetPath, error => {
+             if(error != null) {
+                 console.log(error);
+                 return res.sendStatus(400);
+             }
+             res.sendStatus(200);
+         });
+     });
+     ```
+
+     make images folder within uploads folder
+
+     filePath's filename is with lower case n. not N.
+
+     rename(old one, new one, callback func)
+
+     now when you click the save button, the image is in uploads/images folder
+
+   - update the picture in db
+
+     ```js
+     fs.rename(tempPath, targetPath, async error => {
+       if(error != null) {
+         console.log(error);
+         return res.sendStatus(400);
+       }
+       req.session.user = await User.findByIdAndUpdate(req.session.user._id, { profilePic: filePath }, { new: true })
+     
+       res.sendStatus(204);
+     });
+     ```
+
+     update the fs.rename's callback function to async.
+
+     html 204: success but no content(no data to give it back)
+
+     by far, profile picture won't change.
+
+     to fix it? handle the image route.
+
+     - routes/uploadRoutes.js
+
+       ```js
+       const path = require("path");
+       
+       router.get("/images/:path", (req, res, next) => {
+           res.sendFile(path.join(__dirname, "../uploads/images/" + req.params.path));
+       });
+       ```
+
+     - app.js
+
+       register uploadRoutes.
+
+     
 
 ## Cover Photo
 

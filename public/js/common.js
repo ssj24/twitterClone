@@ -1,3 +1,6 @@
+// Globals
+let cropper;
+
 $("#postTextarea, #replyTextarea").keyup(event => {
     const textbox = $(event.target);
     const value = textbox.val().trim();
@@ -152,6 +155,44 @@ $("#deletePostButton").click(event => {
         }
     })
 });
+
+$("#filePhoto").change(event => {
+    const input = $(event.target)[0];
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const image = document.getElementById("imagePreview");
+            image.src = e.target.result;
+            if (cropper !== undefined) {
+                cropper.destroy();
+            }
+            cropper = new Cropper(image, {
+                aspectRatio: 1 / 1,
+                background: false
+            })
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+});
+
+$("#imageUploadButton").click(() => {
+    const canvas = cropper.getCroppedCanvas();
+    if (canvas == null) return alert("Could not upload image.");
+    canvas.toBlob(blob => {
+        const formData = new FormData();
+        formData.append("croppedImage", blob);
+        $.ajax({
+            url: "/api/users/profilePicture",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: () => {
+                location.reload();
+            }
+        })
+    })
+})
 
 function getPostIdFromElement(element) {
     const isRoot = element.hasClass("post");

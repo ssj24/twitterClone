@@ -467,3 +467,25 @@ button span {
     flex: 1;
     padding: 0 var(--spacing);
 }
+
+.searchBarContainer {
+    position: relative;
+    color: var(--grey_text);
+    padding: 10px var(--spacing);
+}
+
+.searchBarContainer i {
+    position: absolute;
+    top: 20px;
+    left: 30px;
+}
+
+.searchBarContainer #searchBox {
+    height: 36px;
+    width: 100%;
+    padding: 5px 15px 5px 40px;
+    border-radius: 50px;
+    background-color: var(--maybe_green);
+    border: none;
+    color: var(--grey_text);
+}

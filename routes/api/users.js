@@ -12,6 +12,27 @@ app.use(express.urlencoded({
 	extended: false
 }));
 
+router.get("/", async (req, res, next) => {
+    let searchObj = req.query;
+    if (req.query.search !== undefined) {
+        searchObj = {
+            $or: [
+                { firstName: { $regex: searchObj.search, $options: "i" }},
+                { lastName: { $regex: searchObj.search, $options: "i" }},
+                { username: { $regex: searchObj.search, $options: "i" }},
+            ]
+        };
+    }
+    User.find(searchObj)
+    .then(results => {
+        res.status(200).send(results);
+    })
+    .catch(error => {
+        console.log(error);
+        res.sendStatus(400);
+    })
+})
+
 router.put("/:userId/follow", async (req, res, next) => {
     const userId = req.params.userId;
 

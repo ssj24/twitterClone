@@ -3482,6 +3482,212 @@
 
 ## Search
 
+1. create search page
+
+   - routes/searchRoutes.js
+
+     ```js
+     const express = require('express');
+     const app = express();
+     const router = express.Router();
+     const bcrypt = require("bcrypt");
+     const User = require("../schemas/UserSchema");
+     
+     router.get("/", (req, res, next) => {
+     	const payload = createPayload(req.session.user);
+     
+         res.status(200).render("searchPage", payload);
+     });
+     
+     router.get("/:selectedTab", (req, res, next) => {
+     	const payload = createPayload(req.session.user);
+         payload.selectedTab = req.params.selectedTab;
+         res.status(200).render("searchPage", payload);
+     });
+     
+     function createPayload(userLoggedIn) {
+         return {
+             pageTitle: "Search",
+             userLoggedIn: userLoggedIn,
+             userLoggedInJS: JSON.stringify(userLoggedIn)
+         };
+     };
+     
+     module.exports = router;
+     ```
+
+   - views/searchPage.pug
+
+     ```pug
+     extends layouts/main-layout.pug
+     
+     block content
+         .tabsContainer 
+             +createTab("Posts", `/search/posts`, selectedTab != "users")
+             +createTab("Users", `/search/users`, selectedTab == "users")
+         .resultsContainer
+         
+     	+createPostModals(userLoggedIn)
+     
+     block scripts 
+     	script(src="/js/search.js") 
+     ```
+
+   - app.js
+
+     ```js
+     const searchRoute = require("./routes/searchRoutes");
+     app.use("/search", middleware.requireLogin, searchRoute);
+     ```
+
+2. search bar
+
+   ```pug
+   .searchBarContainer
+           i.fas.fa-search
+           input#searchBox(type="text", name="searchBox", data-search=selectedTab, placeholder="Search for posts or users")
+   ```
+
+3. search timer
+
+   set a timer when type starts.(every keydown)
+
+   - public/js/search.js
+
+     ```js
+     let timer;
+     $("#searchBox").keydown(event => {
+         clearTimeout(timer);
+         const textbox = $(event.target);
+         let value = textbox.val();
+         const searchType = textbox.data().search;
+     
+         timer = setTimeout(() => {
+             value = textbox.val().trim();
+     
+             if (value == "") {
+                 $(".resultsContainer").html("");
+             } else {
+                 console.log(value);
+             }
+         }, 1000);
+     })
+     ```
+
+4. search for post
+
+   - common.js
+
+     ```js
+     let timer;
+     $("#searchBox").keydown(event => {
+         clearTimeout(timer);
+         const textbox = $(event.target);
+         let value = textbox.val();
+         const searchType = textbox.data().search;
+     
+         timer = setTimeout(() => {
+             value = textbox.val().trim();
+     
+             if (value == "") {
+                 $(".resultsContainer").html("");
+             } else {
+                 search(value, searchType);
+             }
+         }, 1000);
+     });
+     
+     function search(searchTerm, searchType) {
+         const url = searchType == "users" ? "/api/users" : "/api/posts";
+         $.get(url, { search: searchTerm }, results => {
+             console.log(results);
+         })
+     };
+     ```
+
+     
+
+   - posts.js
+
+     update get all posts response
+
+     ```js
+     if (searchObj.search !== undefined) {
+       searchObj.content = { $regex: searchObj.search, $options: "i" }
+       delete searchObj.search;
+         }
+     ```
+
+     :question: $regex: searchObj.content = searchObj.search
+
+     ​	regex is not search for only complete match. it searches for partial match.
+
+     `$options: "i"` case insensitive search
+
+5. output the search result
+
+   ```js
+   // search.js
+   function search(searchTerm, searchType) {
+       const url = searchType == "users" ? "/api/users" : "/api/posts";
+       $.get(url, { search: searchTerm }, results => {
+           if (searchType == "users") {
+   
+           } else {
+               outputPosts(results, $(".resultsContainer"));
+           }
+       })
+   };
+   ```
+
+6. search for user
+
+   - users.js
+
+     ```js
+     router.get("/", async (req, res, next) => {
+         let searchObj = req.query;
+         if (req.query.search !== undefined) {
+             searchObj = {
+                 $or: [
+                     { firstName: { $regex: searchObj.search, $options: "i" }},
+                     { lastName: { $regex: searchObj.search, $options: "i" }},
+                     { username: { $regex: searchObj.search, $options: "i" }},
+                 ]
+             };
+         }
+         User.find(searchObj)
+         .then(results => {
+             res.status(200).send(results);
+         })
+         .catch(error => {
+             console.log(error);
+             res.sendStatus(400);
+         })
+     })
+     ```
+
+     if any of three line is true(if there is a user whose firstName or lastName or username is included within search term.), returns the result.
+
+   - search.js
+
+     ```js
+     function search(searchTerm, searchType) {
+         const url = searchType == "users" ? "/api/users" : "/api/posts";
+         $.get(url, { search: searchTerm }, results => {
+             if (searchType == "users") {
+                 outputUsers(results, $(".resultsContainer"));
+             } else {
+                 outputPosts(results, $(".resultsContainer"));
+             }
+         })
+     };
+     ```
+
+   - common.js
+
+     move outputUsers, createUserHtml function from follow.js to common.js
+
 ## Group Chat
 
 ## Chat List

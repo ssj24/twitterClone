@@ -282,7 +282,7 @@ function getPostIdFromElement(element) {
     const postId = rootElement.data().id;
     if (postId === undefined) return alert("Post id undefined");
     return postId;
-}
+};
 
 function createPostHtml(postData, largeFont = false) {
     if (postData == null) return alert("post object is null");
@@ -373,7 +373,7 @@ function createPostHtml(postData, largeFont = false) {
             </div>
         </div>
     </div>`;
-}
+};
 
 function timeDifference(current, previous) {
 
@@ -409,7 +409,7 @@ function timeDifference(current, previous) {
     else {
         return Math.round(elapsed/msPerYear ) + ' years ago';   
     }
-}
+};
 
 function outputPosts(results, container) {
     if (container[0].className == "pinnedPostContainer" && results.length == 0) {
@@ -427,7 +427,7 @@ function outputPosts(results, container) {
     if (!results.length) {
         container.append("<span class='noResults'>Nothing to show.</span>");
     }
-}
+};
 
 function outputPostsWithReplies(results, container) {
     container.html("");
@@ -443,4 +443,46 @@ function outputPostsWithReplies(results, container) {
         const html = createPostHtml(result)
         container.append(html);
     });
-}
+};
+
+
+function outputUsers(results, container) {
+    container.html("");
+    results.forEach(result => {
+        const html = createUserHtml(result, true);
+        container.append(html);
+    });
+
+    if (results.length == 0) {
+        container.append("<span class='noResults'>No results found</span>")
+    }
+};
+
+function createUserHtml(userData, showFollowButton) {
+    const name = userData.firstName + " " + userData.lastName;
+    const isFollowing = userLoggedIn.following && userLoggedIn.following.includes(userData._id);
+    const text = isFollowing ? "Following" : "Follow";
+    const buttonClass = isFollowing ? "followButton following" : "followButton";
+    let followButton = "";
+    if (showFollowButton && userLoggedIn._id != userData._id) {
+        followButton = `
+        <div class="followButtonContainer">
+            <button class="${buttonClass}" data-user="${userData._id}">${text}</button>
+        </div>
+        `;
+    }
+    return `
+    <div class="user">
+        <div class="userImageContainer">
+            <img src="${userData.profilePic}">
+        </div>
+        <div class="userDetailsContainer">
+            <div class="header">
+                <a href="/profile/${userData.username}">${name}</a>
+                <span class="username">@${userData.username}</span>
+            </div>
+        </div>
+        ${followButton}
+    </div>
+    `;
+};

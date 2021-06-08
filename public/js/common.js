@@ -156,6 +156,50 @@ $("#deletePostButton").click(event => {
     })
 });
 
+$("#confirmPinModal").on("show.bs.modal", event => {
+    const button = $(event.relatedTarget);
+    const postId = getPostIdFromElement(button);
+    $("#confirmPinButton").data("id", postId);
+});
+
+$("#confirmPinButton").click(event => {
+    const postId = $(event.target).data("id");
+    $.ajax({
+        url: `/api/posts/${postId}`,
+        type: "PUT",
+        data: { pinned: true },
+        success: (data, status, xhr) => {
+            if (xhr.status != 204) {
+                alert("Could not pin the post");
+                return;
+            }
+            location.reload();
+        }
+    })
+});
+
+$("#unpinModal").on("show.bs.modal", event => {
+    const button = $(event.relatedTarget);
+    const postId = getPostIdFromElement(button);
+    $("#unpinButton").data("id", postId);
+});
+
+$("#unpinButton").click(event => {
+    const postId = $(event.target).data("id");
+    $.ajax({
+        url: `/api/posts/${postId}`,
+        type: "PUT",
+        data: { pinned: false },
+        success: (data, status, xhr) => {
+            if (xhr.status != 204) {
+                alert("Could not unpin the post");
+                return;
+            }
+            location.reload();
+        }
+    })
+});
+
 $("#filePhoto").change(event => {
     const input = $(event.target)[0];
     if (input.files && input.files[0]) {
@@ -269,13 +313,27 @@ function createPostHtml(postData, largeFont = false) {
     }
 
     let buttons = ``;
+    let pinnedPostText = "";
     if (postedBy._id == userLoggedIn._id) {
-        buttons = `<button class="deletePostButton" data-id="${postData._id}" data-toggle="modal" data-target="#deletePostModal"><i class="fas fa-times"></i></button>`
+        let pinnedClass = "";
+        let dataTarget = "#confirmPinModal";
+        if (postData.pinned === true) {
+            pinnedClass = "active";
+            dataTarget = "#unpinModal";
+            pinnedPostText = `
+                <i class="fas fa-thumbtack"></i>
+                 <span>Pinned post</span>
+            `;
+        }
+        buttons = `
+        <button class="confirmPinButton ${pinnedClass}" data-id="${postData._id}" data-toggle="modal" data-target=${dataTarget}><i class="fas fa-thumbtack"></i></button>
+        <button class="deletePostButton" data-id="${postData._id}" data-toggle="modal" data-target="#deletePostModal"><i class="fas fa-times"></i></button>
+        `
     };
     return `
     <div class="post ${largeFontClass}" data-id="${postData._id}">
         <div class="postActionContainer">
-            ${retweetText}
+            ${pinnedPostText} &nbsp; ${retweetText}
         </div>
         <div class="mainContentContainer">
             <div class="userImageContainer">
@@ -354,6 +412,10 @@ function timeDifference(current, previous) {
 }
 
 function outputPosts(results, container) {
+    if (container[0].className == "pinnedPostContainer" && results.length == 0) {
+        container.hide();
+        return;
+    } 
     container.html("");
     if (!Array.isArray(results)) {
         results = [results];
@@ -362,7 +424,6 @@ function outputPosts(results, container) {
         const html = createPostHtml(result);
         container.append(html);
     });
-
     if (!results.length) {
         container.append("<span class='noResults'>Nothing to show.</span>");
     }

@@ -3244,9 +3244,241 @@
      }
      ```
 
+## Pin a Post
+
+1. modal
+
+   - update createPostHtml function at common.js
+
+     ```js
+     let buttons = ``;
+         if (postedBy._id == userLoggedIn._id) {
+             buttons = `
+             <button class="pinPostButton" data-id="${postData._id}" data-toggle="modal" data-target="#confirmPinModal"><i class="fas fa-thumbtack"></i></button>
+             <button class="deletePostButton" data-id="${postData._id}" data-toggle="modal" data-target="#deletePostModal"><i class="fas fa-times"></i></button>
+             `
+         };
+     ```
+
+   - mixins.pug
+
+     make createPinnedPostModal.
+
+     and update createPostModals(userLoggedIn).
+
+     since you need this pin feature anywhere if there is a post.
+
+     ```pug
+     mixin createPostModals(userLoggedIn)
+         +createReplyModal(userLoggedIn)
+         +createDeletePostModal()
+         +createPinnedPostModal()
+     ```
+
      
 
-## Pin a Post
+2. pin a post
+
+   - common.js
+
+     similer to delete the post
+
+     ```js
+     $("#confirmPinModal").on("show.bs.modal", event => {
+         const button = $(event.relatedTarget);
+         const postId = getPostIdFromElement(button);
+         $("#pinPostButton").data("id", postId);
+     });
+     
+     $("#pinPostButton").click(event => {
+         const postId = $(event.target).data("id");
+         
+         $.ajax({
+             url: `/api/posts/${postId}`,
+             type: "PUT",
+           	data: { pinned: true },
+             success: (data, status, xhr) => {
+                 if (xhr.status != 204) {
+                     alert("Could not pin the post");
+                     return;
+                 }
+                 location.reload();
+             }
+         })
+     });
+     ```
+
+   - posts.js
+
+     ```js
+     router.put("/:id", async (req, res, next) => {
+         if (req.body.pinned !== undefined) {
+             await Post.updateMany({ postedBy: req.session.user }, { pinned: false })
+             .catch(error => {
+                 console.log(error);
+                 res.sendStatus(400);
+             })
+         }
+         Post.findByIdAndDelete(req.params.id, req.body)
+         .then(() => {
+             res.sendStatus(204);
+         })
+         .catch(error => {
+             console.log(error);
+             res.sendStatus(400);
+         })
+     });
+     ```
+
+     since we will use this feature later again it could looks a bit vague.
+
+     if the request send a pinned(which is not undefined), all the posts that the logged in user posted will have pinned value of false.
+
+     then, update the specific post by request.params.id to set pinned value of true. (that's what in the req.body)
+
+   - PostSchema.js
+
+     `pinned: Boolean,`
+
+3. change color of pinned post
+
+   ```js
+   // common.js - createPostHtml()
+   if (postedBy._id == userLoggedIn._id) {
+     let pinnedClass = "";
+     if (postData.pinned === true) {
+       pinnedClass = "active"
+     }
+     buttons = `
+   <button class="pinPostButton ${pinnedClass}" data-id="${postData._id}" data-toggle="modal" data-target="#confirmPinModal"><i class="fas fa-thumbtack"></i></button>
+   <button class="deletePostButton" data-id="${postData._id}" data-toggle="modal" data-target="#deletePostModal"><i class="fas fa-times"></i></button>
+   `
+   };
+   ```
+
+4. label
+
+   ```js
+   let pinnedPostText = "";
+       if (postedBy._id == userLoggedIn._id) {
+           let pinnedClass = "";
+           if (postData.pinned === true) {
+               pinnedClass = "active"
+               pinnedPostText = `
+                   <i class="fas fa-thumbtack"></i>
+                    <span>Pinned post</span>
+               `
+           }
+           buttons = `
+           <button class="pinPostButton ${pinnedClass}" data-id="${postData._id}" data-toggle="modal" data-target="#confirmPinModal"><i class="fas fa-thumbtack"></i></button>
+           <button class="deletePostButton" data-id="${postData._id}" data-toggle="modal" data-target="#deletePostModal"><i class="fas fa-times"></i></button>
+           `
+       };
+   return `
+       <div class="post ${largeFontClass}" data-id="${postData._id}">
+           <div class="postActionContainer">
+               ${pinnedPostText} &nbsp; ${retweetText}
+           </div>
+   ...
+   `
+   ```
+
+5. pinned post on the profile page
+
+   - profile.js
+
+     update loadPosts function only.
+
+     ```js
+     function loadPosts() {
+         $.get("/api/posts", { postedBy: profileUserId, pinned: true }, results => {
+             outputPosts(results, $(".pinnedPostContainer"));
+         });
+     
+         $.get("/api/posts", { postedBy: profileUserId, isReply: false }, results => {
+             outputPosts(results, $(".postsContainer"));
+         });
+     };
+     ```
+
+     if there is no pinned post, make sure there are no underline
+
+   - profilePage.pug
+
+     ```pug
+     .pinnedPostContainer
+     ```
+
+   - common.js - outputPosts function
+
+     ```js
+     if (container[0].className == "pinnedPostContainer"  && results.length == 0) {
+             container.hide();
+             return;
+         } 
+     ```
+
+6. unpin a post
+
+   - common.js
+
+     ```js
+     // createPostHtml
+     if (postedBy._id == userLoggedIn._id) {
+       let pinnedClass = "";
+       let dataTarget = "#confirmPinModal";
+       if (postData.pinned === true) {
+         pinnedClass = "active";
+         dataTarget = "#unpinModal";
+         pinnedPostText = `
+     <i class="fas fa-thumbtack"></i>
+     <span>Pinned post</span>
+     `;
+       }
+       buttons = `
+     <button class="pinPostButton ${pinnedClass}" data-id="${postData._id}" data-toggle="modal" data-target=${dataTarget}><i class="fas fa-thumbtack"></i></button>
+     <button class="deletePostButton" data-id="${postData._id}" data-toggle="modal" data-target="#deletePostModal"><i class="fas fa-times"></i></button>
+     `
+     };
+     ```
+
+   - mixins.pug
+
+     ```pug
+     mixin createPostModals(userLoggedIn)
+         +createReplyModal(userLoggedIn)
+         +createDeletePostModal()
+         +createPinnedPostModal()
+         +createUnpinPostModal()
+         
+     mixin createUnpinPostModal()
+         #unpinModal.modal.fade(tabindex='-1', role='dialog', aria-labelledby='unpinModalLabel', aria-hidden='true')
+             .modal-dialog(role='document')
+                 .modal-content
+                     .modal-header
+                         img(src="/images/leaf.png", alt="")
+     
+                         h5#unpinModalLabel.modal-title Unpin this post?
+                         button.close(type='button', data-dismiss='modal', aria-label='Close')
+                             span(aria-hidden='true') &times;
+                     .modal-body
+                         p. 
+                             This post will be unpinned.
+                     .modal-footer
+                         button#unpinButton.postButton(type='button') Pin
+     ```
+
+   - common.js
+
+     just like comfirmPinModal and pinPostButton.
+
+     ```js
+     $("#unpinModal").on("show.bs.modal", event => {
+     $("#unpinButton").click(event => {
+       data: { pinned: false },
+     ```
+
+     
 
 ## Search
 

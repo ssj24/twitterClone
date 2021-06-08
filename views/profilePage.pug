@@ -11,11 +11,17 @@ block content
         - const followingCount = profileUser.following.length;
         - const followersCount = profileUser.followers.length;
         .profileHeaderContainer 
-            .coverPhotoContainer 
+            .coverPhotoSection
+                .coverPhotoContainer
+                    if profileUser.coverPhoto
+                        img(src=profileUser.coverPhoto, alt="cover photo")
+                    if profileUser._id == userLoggedIn._id 
+                        button.imageUploadButton(data-toggle="modal", data-target="#coverPhotoUploadModal")
+                            i.fas.fa-camera
                 .userImageContainer 
                     img(src=profileUser.profilePic, alt="user profile image")
                     if profileUser._id == userLoggedIn._id 
-                        button.profilePictureButton(data-toggle="modal", data-target="#imageUploadModal")
+                        button.imageUploadButton(data-toggle="modal", data-target="#imageUploadModal")
                             i.fas.fa-camera
             .profileButtonsContainer 
                 if profileUser._id != userLoggedIn._id 
@@ -46,6 +52,7 @@ block content
 
         +createPostModals(userLoggedIn)
         +createImageUploadModal()
+        +createCoverPhotoUploadModal()
 
 block scripts 
     script(src="/js/profile.js")

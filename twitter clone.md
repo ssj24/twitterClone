@@ -3154,6 +3154,98 @@
 
 ## Cover Photo
 
+1. upload button - modal
+
+   - profilePage.pug
+
+     same logic with profile picture upload
+
+     to write css more efficient... change pug a bit.
+
+     ```pug
+     .coverPhotoSection
+       .coverPhotoContainer
+         if profileUser._id == userLoggedIn._id 
+           button.imageUploadButton(data-toggle="modal", data-target="#coverPhotoUploadModal")
+           	i.fas.fa-camera
+       .userImageContainer 
+         img(src=profileUser.profilePic, alt="user profile image")
+           if profileUser._id == userLoggedIn._id 
+           	button.imageUploadButton(data-toggle="modal", data-target="#imageUploadModal")
+           		i.fas.fa-camera
+     ```
+
+   - mixins.pug
+
+     make createCoverPhotoUploadModal() which is same with createImageUploadModal() but change names with coverPhoto
+
+     and add that to profilePage.pug
+
+2. cropping
+
+3. - common.js
+
+     just same with profile picture. but be aware of names of id.
+
+     and aspectRatio need to be 16/9
+
+     when you click the upload, ratio works but there is scale issue. too many spaces. it's because of css. there is a css that cropper js needed for imagePreview. since we've changed a name of preview's id, add that id to css.
+
+     ```css
+     #imagePreview, #coverPhotoPreview {
+         display: block;
+         width: 100%; 
+         max-width: 100%;
+     }
+     ```
+
+   
+
+4. upload cover photo
+
+   - common.js
+
+     same with profile picture. be aware of id and url.
+
+   - users.js
+
+     same but url and field name.
+
+     since we don't have a coverPhoto field in user yet.
+
+     update userSchema
+
+   - UserSchema.js
+
+     ```js
+     coverPhoto: { type: String },
+     ```
+
+     didn't set a default because currently default cover photo is color with css. 
+
+   So far, it is uploaded to db. but couldn't see it on profile page.
+
+   - how to display it?
+
+     ```pug
+     // profilePage.pug
+     .coverPhotoContainer
+       if profileUser.coverPhoto
+       	img(src=profileUser.coverPhoto, alt="cover photo")
+     ```
+
+     you can see it, but scale issue again.
+
+     ```css
+     .coverPhotoContainer img {
+         width: 100%;
+         height: 100%;
+         object-fit: cover;
+     }
+     ```
+
+     
+
 ## Pin a Post
 
 ## Search

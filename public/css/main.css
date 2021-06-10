@@ -538,3 +538,65 @@ button span {
     margin: 5px 5px 0 0;
     display: inline-block;
 }
+
+.resultListItem {
+    padding: var(--spacing);
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--light_grey);
+}
+
+.resultListItem:hover {
+    background-color: var(--maybe_green);
+}
+
+.resultListItem img {
+    height: 100%;
+    width: 100%;
+    border-radius: 50%;
+}
+
+.resultsImageContainer {
+    height: 40px;
+    width: 40px;
+    position: relative;
+    margin-right: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.resultsImageContainer.groupChatImage img{
+    height: 65%;
+    width: 65%;
+    position: absolute;
+    bottom: 0;
+    margin: 0;
+    border: 2px solid var(--maybe_green);
+}
+
+.resultsImageContainer.groupChatImage img:first-of-type {
+    top: 0;
+    right: 0;
+}
+
+.resultsDetailsContainer {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.resultsDetailsContainer .heading {
+    font-weight: 500;
+}
+
+.resultsDetailsContainer .subText {
+    color: var(--grey_text);
+    font-size: 14px;
+}
+
+.ellipsis {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

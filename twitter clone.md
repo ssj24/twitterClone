@@ -3690,7 +3690,421 @@
 
 ## Group Chat
 
+1. inbox page route
+
+   - routes/messageRoutes.js
+
+     ```js
+     router.get("/", (req, res, next) => {
+     
+         res.status(200).render("inboxPage", {
+             pageTitle: "Inbox",
+             userLoggedIn: req.session.user,
+             userLoggedInJS: JSON.stringify(req.session.user)
+         });
+     });
+     
+     router.get("/new", (req, res, next) => {
+     
+         res.status(200).render("newMessage", {
+             pageTitle: "New message",
+             userLoggedIn: req.session.user,
+             userLoggedInJS: JSON.stringify(req.session.user)
+         });
+     });
+     ```
+
+   - app.js
+
+     register messagesRoute
+
+   - views/inboxPage.pug
+
+     ```pug
+     extends layouts/main-layout.pug
+     
+     block content
+     	.resultsContainer
+     
+     block scripts 
+     	script(src="/js/inboxPage.js") 
+     ```
+
+   - views/newMessage.pug
+
+     ```pug
+     extends layouts/main-layout.pug
+     
+     block content
+     	.resultsContainer
+     ```
+
+2. new message button
+
+   - main-layout.pug
+
+     ```pug
+     .mainSectionContainer.col-10.col-md-8.col-lg-6
+       .titleContainer 
+         h1 #{pageTitle}
+         block headerButton	
+     ```
+
+     add a block for messages under .titleContainer
+
+   - inboxPage.pug
+
+     ```pug
+     block headerButton
+     	a(href="/messages/new")
+     		i.fas.fa-comment-dots
+     ```
+
+3. new message page
+
+   ```pug
+   //- newMessage.pug
+   extends layouts/main-layout.pug
+   
+   block content
+       .chatPageContainer 
+           .chatTitleBar
+               label(for="userSearchTextbox") To:
+               #selectedUsers 
+                   input#userSearchTextbox(type="text", placeholder="Type the name of the user")
+       	.resultsContainer
+           button#createChatButton(disabled="") Create chat
+   
+   ```
+
+   
+
+4. user search timer
+
+   - common.js
+
+     bring searchBox keydown handler from search.js
+
+     make searchUsers function
+
+     ```js
+     let timer;
+     $("#userSearchTextbox").keydown(event => {
+         clearTimeout(timer);
+         const textbox = $(event.target);
+         let value = textbox.val();
+     		
+       	if (value == "" && event.keyCode == 8) {
+             // remove user from selection
+             return;
+         }
+         timer = setTimeout(() => {
+             value = textbox.val().trim();
+     
+             if (value == "") {
+                 $(".resultsContainer").html("");
+             } else {
+                 searchUsers(value);
+             }
+         }, 1000);
+     });
+     ```
+
+     since we have a timer variable in common.js now, you should remove timer variable from search.js. timer is global variable from now on.
+
+     keycode 8 is delete key.
+
+     since it is a group chat, you could select multiple user by searching. if you get user1 by searching and then get user2, we will add the users on #userSearchTextbox but it is NOT the value of it yet. so the if phrase is for this. while you searching for the users, if you press delete key, the user selected one at last will be removed.
+
+     ```js
+     function searchUsers(searchTerm) {
+         $.get("/api/users", { search: searchTerm }, results => {
+             outputSelectableUsers(results, $(".resultsContainer"));
+         });
+     };
+     
+     function outputSelectableUsers(results, container) {
+         container.html("");
+         results.forEach(result => {
+             if (result._id == userLoggedIn._id) {
+                 return;
+             }
+             const html = createUserHtml(result, true);
+             container.append(html);
+         });
+     
+         if (results.length == 0) {
+             container.append("<span class='noResults'>No results found</span>")
+         }
+     };
+     ```
+
+     searchUsers are not same with the searching users at search page.
+
+     	- the user who is searching shouldn't be shown
+     	- if the user is already selected, that user shouldn't be shown too
+
+     because of two above, outputUsers couldn't be used again and make new function.
+
+5. select users
+
+   - common.js
+
+     ```js
+     let selectedUsers = [];
+     
+     function outputSelectableUsers(results, container) {
+         container.html("");
+         results.forEach(result => {
+             if (result._id == userLoggedIn._id) {
+                 return;
+             }
+             const html = createUserHtml(result, false);
+             const element = $(html);
+             element.click(() => userSelected(result))
+             container.append(element);
+         });
+     
+         if (results.length == 0) {
+             container.append("<span class='noResults'>No results found</span>")
+         }
+     };
+     
+     function userSelected(user) {
+         selectedUsers.push(user);
+         $("#userSearchTextbox").val("").focus();
+         $(".resultsContainer").html("");
+         $("#createChatButton").prop("disabled", false);
+     };
+     ```
+
+     second argument of createUserHtml is false. It means follow button won't show up.
+
+   - update outputSelectableUsers's if condition for avoiding duplicate user.
+
+     ```js
+     if (result._id == userLoggedIn._id || selectedUsers.some(u => u._id == result._id)) {
+       return;
+     }
+     ```
+
+     if one of selectedUsers id equals id of searching result, it returns a true(Array.some returns true if condition passes)
+
+   - output selected users
+
+     ```js
+     function userSelected(user) {
+         selectedUsers.push(user);
+         updateSelectedUsersHtml();
+         $("#userSearchTextbox").val("").focus();
+         $(".resultsContainer").html("");
+         $("#createChatButton").prop("disabled", false);
+     };
+     
+     function updateSelectedUsersHtml() {
+         let elements = [];
+         selectedUsers.forEach(user => {
+             const name = user.firstName + " " + user.lastName;
+             const userElement = $(`<span class="selectedUser">${name}</span>`);
+             elements.push(userElement);
+     
+         })
+         $(".selectedUser").remove();
+         $("#selectedUsers").prepend(elements);
+     }
+     ```
+
+     if you use append for add elements in #selectedUsers, the elements will added after the textbox.
+
+6. remove selected user
+
+   ```js
+   // common.js
+   $("#userSearchTextbox").keydown(event => {
+       clearTimeout(timer);
+       const textbox = $(event.target);
+       let value = textbox.val();
+   
+       if (value == "" && (event.which == 8 || event.keyCode == 8)) {
+           selectedUsers.pop();
+           updateSelectedUsersHtml();
+           $(".resultsContainer").html("");
+   
+           if (selectedUsers.length == 0) {
+               $("#createChatButton").prop("disabled", true);
+           }
+   
+           return;
+       }
+   ```
+
+   keyCode is deprecated => update like that.
+
+   event.which is jQuery version of event.keyCode
+
+7. chat schema
+
+   - schemas/ChatSchema.js
+
+     ```js
+     const mongoose = require('mongoose');
+     
+     const Schema = mongoose.Schema;
+     const ChatSchema = new Schema({
+         chatName: { type: String, trim: true },
+         isGroupChat: { type: Boolean, default: false },
+         users: [{ type: Schema.Types.ObjectId, ref: "User" }],
+         latestMessage: { type: Schema.Types.ObjectId, ref: "Message" },
+     }, { timestamps: true });
+     
+     module.exports = mongoose.model('Chat', ChatSchema);
+     ```
+
+     latestMessage field is for display at inboxPage
+
+8. chat route
+
+   - common.js
+
+     ```js
+     $("#createChatButton").click(event => {
+         const data = JSON.stringify(selectedUsers);
+     
+         $.post("/api/chats", { users: data }, chat => {
+             if (!chat || !chat._id) return alert("Invalid response from server.");
+             window.location.href = `/messages/${chat._id}`;
+         })
+     });
+     ```
+
+     in the ajax call request, only String form of data can be carried.
+
+   - routes/api/chats.js
+
+     ```js
+     const express = require('express');
+     const app = express();
+     const router = express.Router();
+     const User = require("../../schemas/UserSchema");
+     const Post = require("../../schemas/PostSchema");
+     const Chat = require("../../schemas/ChatSchema");
+     
+     app.use(express.urlencoded({
+     	extended: false
+     }));
+     
+     router.post("/", async (req, res, next) => {
+         if (!req.body.users) {
+             console.log("Users param not sent with request");
+             return res.sendStatus(400);
+         }
+         const users = JSON.parse(req.body.users);
+         if (users.length == 0) {
+             console.log("Users array is empty");
+             return res.sendStatus(400);
+         }
+     
+         users.push(req.session.user);
+         const chatData = {
+             users: users,
+             isGroupChat: true
+         }
+     
+         Chat.create(chatData)
+         .then(results => res.status(200).send(results))
+         .catch(error => {
+             console.log(error);
+             res.sendStatus(400);
+         })
+     });
+     
+     
+     module.exports = router;
+     ```
+
+     I myself needed to be a participant. => push req.session.user to users object.
+
+   - app.js
+
+     register chatsAPIRoute
+
+   - if you create a chat at this stage, `Cannot GET /messages/60c1eb86394248da0890bb10` this kinda error is occur and 404 error. it's not error but no page to render. so it worked! you could see it at mongodb too.
+
 ## Chat List
+
+1. get the chats
+
+   - public/js/inboxPage.js
+
+     ```js
+     $(document).ready(() => {
+         $.get("/api/chats", (data, status, xhr) => {
+             if (xhr.status == 400) {
+                 alert("Could not get chat list.");
+             } else {
+                 outputChatList(data, $(".resultsContainer"));
+             }
+         })
+     })
+     
+     function outputChatList(chatList, container) {
+         console.log(chatList);
+     }
+     ```
+
+   - chats.js
+
+     ```js
+     router.get("/", async (req, res, next) => {
+         Chat.find({ users: { $elemMatch: { $eq: req.session.user._id }}})
+         .then(results => res.status(200).send(results))
+         .catch(error => {
+             console.log(error);
+             res.sendStatus(400);
+         })
+     });
+     ```
+
+     find a chat which one has users field that any element of users equals($eq stands for equal) with eq.session.user._id.=> get all the chats that logged in user is involved.
+
+   - output chats
+
+     - inboxPage.js
+
+       ```js
+       function outputChatList(chatList, container) {
+           if (chatList.length == 0) {
+               container.append("<span class='noResults'>Nothing to show.</span>")
+               return;
+           }
+           chatList.forEach(chat => {
+               const html = createChatHtml(chat);
+               container.append(html);
+           })
+       }
+       
+       function createChatHtml(chatData) {
+           const chatName = "Chat name";
+           const image = "";
+           const latestMessage = "Latest messages will be here.";
+       
+           return `
+           <a href="/messages/${chatData._id}" class="resultListItem">
+               <div class="resultsDetailsContainer">
+                   <span class="heading">${chatName}</span>
+                   <span class="subText">${latestMessage}</span>
+               </div>
+           </a>`
+       }
+       ```
+
+2. chat name
+
+   
+
+3. chat images
+
+4. ellipsis for overflowing text
 
 ## Access Chat
 

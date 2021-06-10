@@ -1,5 +1,7 @@
 // Globals
 let cropper;
+let timer;
+let selectedUsers = [];
 
 $("#postTextarea, #replyTextarea").keyup(event => {
     const textbox = $(event.target);
@@ -276,6 +278,42 @@ $("#coverPhotoUploadButton").click(() => {
     })
 })
 
+$("#userSearchTextbox").keydown(event => {
+    clearTimeout(timer);
+    const textbox = $(event.target);
+    let value = textbox.val();
+
+    if (value == "" && (event.which == 8 || event.keyCode == 8)) {
+        selectedUsers.pop();
+        updateSelectedUsersHtml();
+        $(".resultsContainer").html("");
+
+        if (selectedUsers.length == 0) {
+            $("#createChatButton").prop("disabled", true);
+        }
+
+        return;
+    }
+    timer = setTimeout(() => {
+        value = textbox.val().trim();
+
+        if (value == "") {
+            $(".resultsContainer").html("");
+        } else {
+            searchUsers(value);
+        }
+    }, 1000);
+});
+
+$("#createChatButton").click(event => {
+    const data = JSON.stringify(selectedUsers);
+
+    $.post("/api/chats", { users: data }, chat => {
+        if (!chat || !chat._id) return alert("Invalid response from server.");
+        window.location.href = `/messages/${chat._id}`;
+    })
+});
+
 function getPostIdFromElement(element) {
     const isRoot = element.hasClass("post");
     const rootElement = isRoot ? element : element.closest(".post");
@@ -486,3 +524,46 @@ function createUserHtml(userData, showFollowButton) {
     </div>
     `;
 };
+
+function searchUsers(searchTerm) {
+    $.get("/api/users", { search: searchTerm }, results => {
+        outputSelectableUsers(results, $(".resultsContainer"));
+    });
+};
+
+function outputSelectableUsers(results, container) {
+    container.html("");
+    results.forEach(result => {
+        if (result._id == userLoggedIn._id || selectedUsers.some(u => u._id == result._id)) {
+            return;
+        }
+        const html = createUserHtml(result, false);
+        const element = $(html);
+        element.click(() => userSelected(result))
+        container.append(element);
+    });
+
+    if (results.length == 0) {
+        container.append("<span class='noResults'>No results found</span>")
+    }
+};
+
+function userSelected(user) {
+    selectedUsers.push(user);
+    updateSelectedUsersHtml();
+    $("#userSearchTextbox").val("").focus();
+    $(".resultsContainer").html("");
+    $("#createChatButton").prop("disabled", false);
+};
+
+function updateSelectedUsersHtml() {
+    let elements = [];
+    selectedUsers.forEach(user => {
+        const name = user.firstName + " " + user.lastName;
+        const userElement = $(`<span class="selectedUser">${name}</span>`);
+        elements.push(userElement);
+
+    })
+    $(".selectedUser").remove();
+    $("#selectedUsers").prepend(elements);
+}

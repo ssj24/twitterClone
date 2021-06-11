@@ -1,6 +1,6 @@
 # twitter clone
 
-[toc]
+[TOC]
 
 ## simple server practice
 
@@ -4215,9 +4215,211 @@
 
 ## Access Chat
 
+1. views/chatPage.pug
+
+   ```pug
+   
+   ```
+
+   - ```js
+     // messagesRoutes.js
+     
+     router.get("/:chatId", (req, res, next) => {
+     
+         res.status(200).render("chatPage", {
+             pageTitle: "Chat",
+             userLoggedIn: req.session.user,
+             userLoggedInJS: JSON.stringify(req.session.user)
+         });
+     });
+     ```
+
+2. get the chat data
+
+   - messagesRoutes.js
+
+     ```js
+     const Chat = require("../schemas/ChatSchema");
+     
+     router.get("/:chatId", async (req, res, next) => {
+         const userId = req.session.user._id;
+         const chatId = req.params.chatId;
+     
+         const chat = await Chat.findOne({ _id: chatId, users: { $elemMatch: { $eq: userId }}})
+         .populate("users");
+     
+         if (chat == null) {
+             // Check if chat id is really user id
+         }
+     
+         res.status(200).render("chatPage", {
+             pageTitle: "Chat",
+             userLoggedIn: req.session.user,
+             userLoggedInJS: JSON.stringify(req.session.user),
+             chat: chat,
+         });
+     });
+     ```
+
+   - check that the chat exists
+
+     ```js
+     router.get("/:chatId", async (req, res, next) => {
+         const userId = req.session.user._id;
+         const chatId = req.params.chatId;
+         const payload = {
+             pageTitle: "Chat",
+             userLoggedIn: req.session.user,
+             userLoggedInJS: JSON.stringify(req.session.user),
+         };
+     
+         const chat = await Chat.findOne({ _id: chatId, users: { $elemMatch: { $eq: userId }}})
+         .populate("users");
+     
+         if (chat == null) {
+             let userFound = await User.findById(chatId);
+             if (userFound != null) {
+                 // get chat using user id
+             }
+         }
+     
+         if (chat == null) {
+             payload.errorMessage = "Chat does not exist or you do not have permission to view it.";
+         } else {
+             poayload.chat = chat;
+         }
+     
+         res.status(200).render("chatPage", payload);
+     });
+     
+     ```
+
+     if the chat is not exist, find the user who have a id that matches with req.params.chatId. 
+
+     - chatPage.pug
+
+       ```pug
+       block content
+           if errorMessage
+               span.errorMessage.noResults #{errorMessage}
+           else
+               script.
+                   const chatId = `!{chat._id}`;
+       ```
+
+     - messagesRoutes.js
+
+       ```js
+       const mongoose = require("mongoose");
+       
+       router.get("/:chatId", async (req, res, next) => {
+           const userId = req.session.user._id;
+           const chatId = req.params.chatId;
+           const isValidId = mongoose.isValidObjectId(chatId);
+           
+           const payload = {
+               pageTitle: "Chat",
+               userLoggedIn: req.session.user,
+               userLoggedInJS: JSON.stringify(req.session.user),
+           };
+       
+           if (!isValidId) {
+               payload.errorMessage = "Chat does not exist or you do not have permission to view it.";
+               return res.status(200).render("chatPage", payload);
+           }
+       ```
+
+       random text at the place of chatId in the url won't throws an errormessage at the page but just endless waiting. so, add a isValidId variable to make it certain to throw an error. 
+
+3. access the chat by user ID
+
+   ```js
+   // messagesRoutes.js
+   let chat = await Chat.findOne({ _id: chatId, users: { $elemMatch: { $eq: userId }}})
+       .populate("users");
+   
+       if (chat == null) {
+           let userFound = await User.findById(chatId);
+           if (userFound != null) {
+               chat = await getChatByUserId(userFound._id, userId);
+           }
+       }
+   
+   
+   function getChatByUserId(userLoggedInId, otherUserId) {
+       return Chat.findOneAndUpdate({
+           isGroupChat: false,
+           users: {
+               $size: 2,
+               $all: [
+                   { $elemMatch: { $eq: userLoggedInId }},
+                   { $elemMatch: { $eq: otherUserId }},
+               ]
+           }
+       }, {
+           $setOnInsert: {
+               users: [userLoggedInId, otherUserId]
+           }
+       }, {
+           new: true,
+           upsert: true
+       })
+       .populate("users");
+   }
+   ```
+
+   you can access the chatPage by click the message button on someone not yourself's profile page. that's why you need to access the chatPage by user Id.
+
+   the reason for using findOneAndUpdate is if you didn't have chat with that user new chat will be created.
+
+   `$size: 2` size of this array is 2
+
+   `$all: []` all of the conditions within [] are met.
+
+   if you couldnt' find the matching chat with first parameters condition( kind of a filtering), create the new chat with second parameter's data.
+
+   third parameter is option
+
+   	- `new: true ` return the newly updated data
+   	- `upsert: true `  if you didn't find it, create it.
+
+   So far, it creats new chat every time you click the message button.
+
+   ```js
+   $all: [
+     { $elemMatch: { $eq: mongoose.Types.ObjectId(userLoggedInId) }},
+     { $elemMatch: { $eq: mongoose.Types.ObjectId(otherUserId) }},
+   ]
+   ```
+
+   just tell the mongoose that it is definitely objectId type.
+
+4. sort the chats
+
+   chats.js
+
+   ```js
+   router.get("/", async (req, res, next) => {
+       Chat.find({ users: { $elemMatch: { $eq: req.session.user._id }}})
+       .populate("users")
+       .sort({ updatedAt: -1 })
+       .then(results => res.status(200).send(results))
+       .catch(error => {
+           console.log(error);
+           res.sendStatus(400);
+       })
+   });
+   ```
+
+   adding .sort line
+
+   sort by updatedAt field descending order.
+
+   -1 or "desc" are descending order.
+
 ## Chat Page
 
-1. chat name
+1. change chat name
 
 ## Send Message
 
@@ -4229,45 +4431,8 @@
 
 ## Display Notification
 
-## Unread Noti/Msg Badges
+## Unread Notification/message badges
 
 ## Real Time Notification
-
-1. 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

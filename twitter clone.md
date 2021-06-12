@@ -4419,7 +4419,218 @@
 
 ## Chat Page
 
-1. change chat name
+1. chat page els
+
+   ```pug
+   //- chatPage.pug
+   else
+     script.
+     	const chatId = `!{chat._id}`;
+   
+     .chatPageContainer 
+       .chatTitleBarContainer 
+       	.span#chatName This is the chat 
+       .mainContentContainer
+         .chatContainer
+   				.chatMessages
+           .footer
+             textarea(name="messageInput", placeholder="Type a message...") 
+             button.sendMessageButton 
+             	i.fas.fa-paper-plane
+   ```
+
+   my placeholder was not showing and the reason was the whitespace after textarea(). well, whitespace is there because of vsCode emmet. anyway if there is a whitespace placeholder won't appear.
+
+2. ```css
+   html, body {
+       height: 100%;
+       min-height: 100%;
+       background-color: #fff;
+       font-weight: 300;
+   }
+   
+   .wrapper {
+       display: flex;
+       flex-direction: column;
+       height: 100%;
+   }
+   
+   .wrapper > .row {
+       margin: 0;
+       height: 100%;
+   }
+   ```
+
+3. group chat image
+
+   ```js
+   // mixins.pug
+   
+   mixin createChatImage(chatData, userLoggedIn)
+       if (!chatData)
+           return
+       .chatImagesContainer
+           each user in chatData.users
+               img(src=user.profilePic, alt="User's profile picture", title=user.firstName)
+   ```
+
+   ```pug
+   // chatPage.pug
+   
+   .chatTitleBarContainer
+     +createChatImage(chat, userLoggedIn)
+     .span#chatName This is the chat 
+   ```
+
+   image is too big. style is needed
+
+   `flex-direction: row-reverse;` : images are overlapped on purpose. if you want the latter image lies at the bottom write this line.
+
+   since it is reverse, data order is reversed. if chat participants are part1, part2, part3, the image order is part3, part2, part1 and part3's image is not stacked. 
+
+4. limit the number of displayed chat images
+
+   ```pug
+   mixin createChatImage(chatData, userLoggedIn)
+       if (!chatData)
+           return
+       
+       - let i = 0
+       - const maxImagesToShow = 3
+       - let remainingUsers = chatData.users.length - maxImagesToShow;
+       - remainingUsers--
+   
+       .chatImagesContainer
+           if remainingUsers > 0
+               .userCount
+                   span +#{remainingUsers}
+           each user in chatData.users
+               if chatData.users.length != 1 && user._id == userLoggedIn._id
+                   - continue
+               else if i >= maxImagesToShow
+                   - break
+               img(src=user.profilePic, alt="User's profile picture", title=user.firstName)
+               - i++
+   
+   ```
+
+   remove one remainingUsers because our own image won't show up.
+
+   - each user in chatData.users~: 
+
+     if there is only one user is remaining and that user's id is mine, skip.
+
+     else if this is more than maxImagesToShow round, just stop the loop.
+
+     every time the loop is over, add one to i.
+
+5. change chat name
+
+   - chage chat name modal
+     - mixins.pug
+
+       ```pug
+       mixin createChatNameModal(chat)
+           #chatNameModal.modal.fade(tabindex='-1', role='dialog', aria-labelledby='chatNameModalLabel', aria-hidden='true')
+               .modal-dialog(role='document')
+                   .modal-content
+                       .modal-header
+                           img(src="/images/leaf.png", alt="")
+       
+                           h5#chatNameModalLabel.modal-title Change the chat name
+                           button.close(type='button', data-dismiss='modal', aria-label='Close')
+                               span(aria-hidden='true') &times;
+                       .modal-body
+                           input#chatNameTextbox(type="text", placeholder="Enter a name for this chat", value=chat.chatname)
+                       .modal-footer
+                           button#chatNameButton.postButton(type='button') Save
+       ```
+
+     - chatPage.pug
+
+       ```pug
+       .chatPageContainer
+       	.chatTitleBarContainer
+                       +createChatImage(chat, userLoggedIn)
+                       .span#chatName(data-toggle="modal", data-target="#chatNameModal") This is the chat 
+       +createChatNameModal(chat)
+       ```
+
+   - ajax call
+
+     - public/js/chatPage.js
+
+       ```js
+       $("#chatNameButton").click(() => {
+           const name = $("#chatNameTextbox").val().trim();
+           
+           $.ajax({
+               url: "/api/chat/" + chatId,
+               type: "PUT",
+               data: { chatName: name },
+               success: (data, status, xhr) => {
+                   if (xhr.status != 204) {
+                       alert("could not update")
+                   } else {
+                       location.reload();
+                   }
+               }
+           })
+       })
+       ```
+
+     - chats.js
+
+       ```js
+       router.put("/:chatId", async (req, res, next) => {
+           Chat.findByIdAndUpdate(req.params.chatId, req.body)
+           .then(results => res.sendStatus(204))
+           .catch(error => {
+               console.log(error);
+               res.sendStatus(400);
+           })
+       });
+       ```
+
+   - chat route
+
+     - chatPage.pug
+
+       ```pug
+       .span#chatName(data-toggle="modal", data-target="#chatNameModal") #{chat.chatName}
+       ```
+
+       it shows the chatname on chat page but if the chat doesn't have a name nothing will appear.
+
+     - chatPage.js
+
+       ```js
+       $(document).ready(() => {
+           $.get(`/api/chats/${chatId}`, (data) => {
+               $("#chatName").text(getChatName(data))
+           })
+       })
+       ```
+
+     - common.js
+
+       since getChatName function(and getOtherChatUsers function which is referenced by getChatName) was in inboxPage.js, just move it to common.js to use in both inbox and chat page.
+
+     - chats.js
+
+       ```js
+       router.get("/:chatId", async (req, res, next) => {
+           Chat.findOne({ _id: req.params.chatId, users: { $elemMatch: { $eq: req.session.user._id }}})
+           .populate("users")
+           .then(results => res.status(200).send(results))
+           .catch(error => {
+               console.log(error);
+               res.sendStatus(400);
+           })
+       });
+       ```
+
+       
 
 ## Send Message
 

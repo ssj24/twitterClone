@@ -13,6 +13,13 @@
     --pale_red: #fae5ecbd;
 }
 
+html, body {
+    height: 100%;
+    min-height: 100%;
+    background-color: #fff;
+    font-weight: 300;
+}
+
 * {
     outline: none !important;
 }
@@ -72,8 +79,15 @@ button span {
     pointer-events: none;
 }
 
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
 .wrapper > .row {
     margin: 0;
+    height: 100%;
 }
 
 .mainSectionContainer {
@@ -112,6 +126,12 @@ button span {
 
 .modal p {
     margin-bottom: 0;
+}
+
+.modal-body {
+    min-height: 100px;
+    display: flex;
+    align-items: center;
 }
 
 .userImageContainer {
@@ -494,6 +514,7 @@ button span {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    flex: 1;
 }
 
 .chatTitleBar {
@@ -599,4 +620,97 @@ button span {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.chatTitleBarContainer {
+    border-bottom: 1px solid var(--light_grey);
+    display: flex;
+    align-items: center;
+    padding: var(--spacing);
+}
+
+.chatImagesContainer {
+    display: flex;
+    flex-direction: row-reverse;
+    padding: var(--spacing);
+}
+
+.chatImagesContainer .userCount {
+    height: 40px;
+    width: 40px;
+    background-color: var(--maybe_green);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    border: 2px solid #fff;
+    padding: 15px;
+}
+
+.chatImagesContainer img {
+    background-color: #fff;
+    width: 40px;
+    height: 40px;
+    border: 2px solid var(--maybe_green);
+    border-radius: 50%;
+}
+
+.chatImagesContainer img:not(:last-child),
+.chatImagesContainer .userCount {
+    margin-left: -10px;
+}
+
+#chatName {
+    width: 100%;
+    border: 1px solid transparent;
+    padding: 0 5px;
+}
+
+#chatName:hover {
+    background-color: var(--maybe_green);
+    cursor: text;
+}
+
+#chatNameTextbox {
+    width: 100%;
+    border: none;
+    /* border-bottom: 1px solid var(--leaf_green); */
+}
+
+.chatContainer {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: hidden;
+}
+
+.chatContainer .chatMessages {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: var(--spacing);
+}
+
+.chatContainer .footer {
+    display: flex;
+    padding: var(--spacing);
+    flex-shrink: 0;
+}
+
+.chatContainer .footer textarea {
+    flex: 1;
+    resize: none;
+    background-color: rgba(0, 0, 0, 0.05);
+    border: none;
+    border-radius: 10px;
+    padding: 8px 12px;
+    height: 40px;
+}
+
+.chatContainer .footer button {
+    background-color: transparent;
+    color: var(--leaf_green);
+    font-size: 24px;
 }

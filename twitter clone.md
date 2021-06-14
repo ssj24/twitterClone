@@ -4634,9 +4634,143 @@
 
 ## Send Message
 
+1. message submit event
+
+   give a class inputTextbox to chatPage - .chatPageContainer - mainContentContainer - chatContainer - footer - textarea
+
+   ```js
+   // chatPage.js
+   
+   $(".sendMessageButton").click(() => {
+       messageSubmitted();
+   })
+   
+   $(".inputTextbox").keydown(event => {
+       if (event.which === 13 && !event.shiftKey) {
+           messageSubmitted();
+           return false;
+       }
+   })
+   
+   function messageSubmitted() {
+       console.log("dsklfj");
+   }
+   ```
+
+   event.which === 13: if the user click enter key
+
+   return false: if enter is pressed, it only means sending the message not new line.
+
+   but to allow users to use new line, add second condition to the if phrase. if enter key is pressed and shift key is not pressed, message is submitted. which means both shift and enter key is pressed it goes to new line.
+
+2. send message function
+
+   ```js
+   // chatPage.js
+   
+   function messageSubmitted() {
+       const content = $(".inputTextbox").val().trim();
+       
+       if (content != "") {
+           sendMessage(content);
+           $(".inputTextbox").val("");
+       }
+   }
+   
+   function sendMessage(content) {
+       console.log(content);
+   }
+   ```
+
+   without content or with only spaces the message couldn't be sent.
+
+3. message schema
+
+   ```js
+   // chatPage.js
+   
+   function sendMessage(content) {
+       $.post("/api/messages", { content: content, chatId: chatId }, (data, status, xhr) => {
+           console.log(data);
+       }) 
+   }
+   ```
+
+   chatId is there because chatId is in chatPage.pug
+
+   - schemas/MessageSchema.js
+
+     ```js
+     const mongoose = require('mongoose');
+     
+     const Schema = mongoose.Schema;
+     const MessageSchema = new Schema({
+         sender: { type: Schema.Types.ObjectId, ref: 'User' },
+         content: { type: String, trim: true },
+         chat: { type: Schema.Types.ObjectId, ref: "Chat" },
+         readBy: [{ type: Schema.Types.ObjectId, ref: "User" }],
+     }, { timestamps: true });
+     
+     module.exports = mongoose.model('Message', MessageSchema);
+     ```
+
+4. message to db
+
+   - routes/api/messages.js
+
+     ```js
+     const Message = require("../../schemas/MessageSchema");
+     
+     router.post("/", async (req, res, next) => {
+         if (!req.body.content || !req.body.chatId) {
+             console.log("Invalid data passed into request.");
+             return res.sendStatus(400);
+         }
+         const newMessage = {
+             sender: req.session.user_id,
+             content: req.body.content,
+             chat: req.body.chatId
+         };
+         Message.create(newMessage)
+         .then(results => {
+             res.status(201).send(results);
+         })
+       	.catch(error => {
+             console.log(error);
+             res.sendStatus(400);
+         })
+     });
+     ```
+
+     register it on app.js
+
+     html code 201 is created sucess.
+
 ## Output Message
 
+1. message html
+2. send message fail
+3. ouput the latest message
+4. get the messages
+5. output all the chat message
+6. add classes to the first and last messages
+7. output the sender name
+8. output the sender profile picture
+9. scrolling of messages
+10. loading spinner
+
 ## Real Time Message: Socket.IO
+
+1. socket io
+2. connect to socket io from the client
+3. setup socket event handler
+4. join a chat room
+5. send type notification
+6. safari messages bug
+7. show the typing dots gif when user is typing
+8. hide the typing dots
+9. send a new message event
+10. handle incoming message
 
 ## Send Notification
 

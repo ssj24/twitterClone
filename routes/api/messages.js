@@ -16,12 +16,17 @@ router.post("/", async (req, res, next) => {
         return res.sendStatus(400);
     }
     const newMessage = {
-        sender: req.session.user_id,
+        sender: req.session.user._id,
         content: req.body.content,
         chat: req.body.chatId
     };
     Message.create(newMessage)
-    .then(results => {
+    .then(async results => {
+        results = await results.populate("sender").execPopulate();
+        results = await results.populate("chat").execPopulate();
+        
+        Chat.findByIdAndUpdate(req.body.chatId, { latestMessage: results })
+        .catch(error => console.log(error));
         res.status(201).send(results);
     })
     .catch(error => {

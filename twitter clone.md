@@ -4527,6 +4527,7 @@
 5. change chat name
 
    - chage chat name modal
+
      - mixins.pug
 
        ```pug
@@ -4727,7 +4728,7 @@
              return res.sendStatus(400);
          }
          const newMessage = {
-             sender: req.session.user_id,
+             sender: req.session.user._id,
              content: req.body.content,
              chat: req.body.chatId
          };
@@ -4749,15 +4750,441 @@
 ## Output Message
 
 1. message html
-2. send message fail
-3. ouput the latest message
-4. get the messages
-5. output all the chat message
-6. add classes to the first and last messages
-7. output the sender name
-8. output the sender profile picture
-9. scrolling of messages
-10. loading spinner
+
+   - chatPage.js
+
+     ```js
+     function sendMessage(content) {
+         $.post("/api/messages", { content: content, chatId: chatId }, (data, status, xhr) => {
+             addChatMessageHtml(data);
+         }) 
+     }
+     
+     function addChatMessageHtml(message) {
+         if (!message || !message._id) {
+             alert("Message is not valid");
+             return;
+         }
+         const messageDiv = createMessageHtml(message);
+         $(".chatMessages").append(messageDiv);
+     }
+     
+     function createMessageHtml(message) {
+         let isMine = message.sender._id == userLoggedIn._id;
+         let liClassName = isMine ? "mine" : "theirs";
+     
+         return `
+             <li class="message ${liClassName}">
+                 <div class="messageContainer">
+                     <span class="messageBody">
+                         ${message.content}
+                     </span>
+                 </div>
+             </li>
+         `
+     }
+     ```
+
+   - chatPage.pug
+
+     change the .chatMessages to ul tag
+
+   - -webkit-flex: 0; -> prevent the container overlapping at safari.
+
+   - align-items: flex-end; at .message  -> make the picture to the bottom line if multiple messages are sent in row.
+
+2. populate the sender
+
+   ```js
+   // messages.js
+   
+   Message.create(newMessage)
+       .populate("sender")
+       .then(async results => {
+           results = await results.populate("sender").execPopulate();
+           results = await results.populate("chat").execPopulate();
+           res.status(201).send(results);
+       })
+   ```
+
+   we cannot add .populate("sender") under the Message.create(newMessage) line. Because it is not find~~ function. so poplute the sender as the way you used at posts.js - getPosts function - results at the bottom.
+
+   now the class of message sent's li is `mine`(which means the id of sender and logged in's are same)
+
+   - flex-direction: row-reverse; -> in case of my message display it at the right side.
+
+3. message failed to send
+
+   if message is not sending for some reason, the message need to be remained at the textbox for user to try again.
+
+   ```js
+   // chatPage.js
+   
+   function sendMessage(content) {
+       $.post("/api/messages", { content: content, chatId: chatId }, (data, status, xhr) => {
+           if (xhr.status != 201) {
+               alert("Could not send message");
+               $(".inputTextbox").val(content);
+               return;
+           }
+   
+           addChatMessageHtml(data);
+       }) 
+   }
+   ```
+
+4. ouput the latest message
+
+   ```js
+   // messages.js
+   
+   Message.create(newMessage)
+       .then(async results => {
+           results = await results.populate("sender").execPopulate();
+           results = await results.populate("chat").execPopulate();
+           
+           Chat.findByIdAndUpdate(req.body.chatId, { latestMessage: results })
+           .catch(error => console.log(error));
+   
+           res.status(201).send(results);
+       })
+   ```
+
+   ```js
+   // inboxPage.js
+   
+   function createChatHtml(chatData) {
+       const chatName = getChatName(chatData);
+       const image = getChatImageElements(chatData);
+       const latestMessage = getLatestMessage(chatData.latestMessage);
+   
+       return `
+       <a href="/messages/${chatData._id}" class="resultListItem">
+           ${image}
+           <div class="resultsDetailsContainer ellipsis">
+               <span class="heading ellipsis">${chatName}</span>
+               <span class="subText ellipsis">${latestMessage}</span>
+           </div>
+       </a>`
+   }
+   
+   function getLatestMessage(latestMessage) {
+       if (latestMessage != null) {
+           const sender = latestMessage.sender;
+           return `
+               ${sender.firstName} ${sender.lastName}: ${latestMessage.content}
+           `;
+       } else return `No Chat`;
+   }
+   ```
+
+   ```js
+   // chats.js
+   
+   router.get("/", async (req, res, next) => {
+       Chat.find({ users: { $elemMatch: { $eq: req.session.user._id }}})
+       .populate("users")
+       .populate("latestMessage")
+       .sort({ updatedAt: -1 })
+       .then(async results => {
+           results = await User.populate(results, { path: "latestMessage.sender "});
+           res.status(200).send(results)
+       })
+       .catch(error => {
+           console.log(error);
+           res.sendStatus(400);
+       })
+   });
+   ```
+
+   populate the latestMessage.
+
+   also need a sender of latestMessage -> just the way used for the latestMessage won't work.
+
+   make a change at the .then method.
+
+5. get the messages
+
+   - chatPage.js
+
+     update document.ready
+
+     ```js
+     $(document).ready(() => {
+         $.get(`/api/chats/${chatId}`, (data) => {
+             $("#chatName").text(getChatName(data));
+         })
+     
+         $.get(`/api/chats/${chatId}/messages`, data => {
+             console.log(data);
+         })
+     })
+     ```
+
+   - chats.js
+
+     ```js
+     router.get("/:chatId/messages", async (req, res, next) => {
+         await Message.find({ chat: req.params.chatId })
+         .populate("sender")
+         .then(results => res.status(200).send(results))
+         .catch(error => {
+             console.log(error);
+             res.sendStatus(400);
+         })
+     });
+     ```
+
+6. output all the chat message
+
+   ```js
+   // chatPage.js
+   
+   $(document).ready(() => {
+       $.get(`/api/chats/${chatId}`, (data) => {
+           $("#chatName").text(getChatName(data));
+       })
+   
+       $.get(`/api/chats/${chatId}/messages`, data => {
+           let messages = [];
+           data.forEach(message => {
+               const html = createMessageHtml(message);
+               messages.push(html);
+           });
+           const messagesHtml = messages.join("");
+       })
+   })
+   
+   function addMessagesHtmlToPage(html) {
+       $(".chatMessages").append(html);
+   }
+   
+   function addChatMessageHtml(message) {
+       if (!message || !message._id) {
+           alert("Message is not valid");
+           return;
+       }
+       const messageDiv = createMessageHtml(message);
+       addMessagesHtmlToPage(messageDiv);
+   }
+   ```
+
+   messages.join("") -> make messages a huge string. nothing inbetween items.
+
+   since adding html to .chatMessages was already in addChatMessageHtml function, make it a separate function. 
+
+   I've got some error at this stage, and the reason was sender's id. it looks like the sender is not registered before I completed function. I just drop the messages collection and send the messages again. not I can see messages.
+
+7. add classes to the first and last messages
+
+   ```js
+   // chatPage.js
+   
+   $(document).ready(() => {
+       $.get(`/api/chats/${chatId}`, (data) => {
+           $("#chatName").text(getChatName(data));
+       })
+   
+       $.get(`/api/chats/${chatId}/messages`, data => {
+           let messages = [];
+           let lastSenderId = '';
+           data.forEach((message, idx) => {
+               const html = createMessageHtml(message, data[idx + 1], lastSenderId);
+               messages.push(html);
+   
+               lastSenderId = message.sender._id;
+           });
+           const messagesHtml = messages.join("");
+           addMessagesHtmlToPage(messagesHtml);
+       })
+   })
+   
+   function addChatMessageHtml(message) {
+       if (!message || !message._id) {
+           alert("Message is not valid");
+           return;
+       }
+       const messageDiv = createMessageHtml(message, null, "");
+       addMessagesHtmlToPage(messageDiv);
+   }
+   
+   function createMessageHtml(message, nextMessage, lastSenderId) {
+       const sender = message.sender;
+       const senderName = sender.firstName + " " + sender.lastName;
+       const currentSenderId = sender._id;
+       const nextSenderId = nextMessage != null ? nextMessage.sender._id : "";
+       const isFirst = lastSenderId != currentSenderId;
+       const isLast = nextSenderId != currentSenderId;
+       
+       const isMine = message.sender._id == userLoggedIn._id;
+       let liClassName = isMine ? "mine" : "theirs";
+   
+       if (isFirst) {
+           liClassName += " first";
+       }
+   
+       if (isLast) {
+           liClassName += " last";
+       }
+   }
+   ```
+
+   if a user sends multiple messages in a row, mark the first one and the last one. if only one message is sent, that message's li is both first and last.
+
+   210614 isFirst needs to be true only for the first message but currently the second message is also set as true.
+
+   => I have write the code above, like
+
+   ```js
+   $(document).ready(() => {
+       $.get(`/api/chats/${chatId}`, (data) => {
+           $("#chatName").text(getChatName(data));
+       })
+   
+       $.get(`/api/chats/${chatId}/messages`, data => {
+           let messages = [];
+           let lastSenderId = '';
+           data.forEach((message, idx) => {
+               const html = createMessageHtml(message, data[idx + 1], lastSenderId);
+               messages.push(html);
+   						if (idx)
+               lastSenderId = message.sender._id;
+           });
+           const messagesHtml = messages.join("");
+           addMessagesHtmlToPage(messagesHtml);
+       })
+   })
+   ```
+
+   `if (idx)` should not be there. interpreter interpretes it like if there is idx, set the lastSenderId. that's why second message also didn't have a lastSenderId.
+
+8. output the sender name
+
+   ```js
+   function createMessageHtml(message, nextMessage, lastSenderId) {
+       const sender = message.sender;
+       const senderName = sender.firstName + " " + sender.lastName;
+       const currentSenderId = sender._id;
+       const nextSenderId = nextMessage != null ? nextMessage.sender._id : "";
+       const isFirst = lastSenderId != currentSenderId;
+       const isLast = nextSenderId != currentSenderId;
+       
+       const isMine = message.sender._id == userLoggedIn._id;
+       let liClassName = isMine ? "mine" : "theirs";
+       let nameElement = "";
+       if (isFirst) {
+           liClassName += " first";
+           if (!isMine) {
+               nameElement = `
+                   <span class="senderName">
+                       ${senderName}
+                   </span>
+               `;
+           }
+       }
+   
+       if (isLast) {
+           liClassName += " last";
+       }
+   
+       return `
+           <li class="message ${liClassName}">
+               <div class="messageContainer">
+                   ${nameElement}
+                   <span class="messageBody">
+                       ${message.content}
+                   </span>
+               </div>
+           </li>
+       `
+   }
+   ```
+
+9. output the sender profile picture
+
+   ```js
+   // chatPage.js
+   
+       let nameElement = "";
+       let userContainer = "";
+       let imageContainer = "";
+       let profileImage = "";
+       if (isFirst) {
+           liClassName += " first";
+           if (!isMine) {
+               nameElement = `<span class="senderName">${senderName}</span>`;
+               profileImage = `<img src="${sender.profilePic}">`;
+               imageContainer = `<div class="imageContainer">${profileImage}</div>`;
+               userContainer = `<div class="userContainer">${imageContainer}${nameElement}</div>`;
+           
+           }
+       }
+   
+       if (isLast) {
+           liClassName += " last";
+       }
+   
+       return `
+           ${userContainer}
+           <li class="message ${liClassName}">
+               <div class="messageContainer">
+                   <span class="messageBody">
+                       ${message.content}
+                   </span>
+               </div>
+           </li>
+       `
+   }
+   ```
+
+   I want to display the picture and the name on the same line right above first message.
+
+10. scrolling of messages
+
+    - currently scrolling only messages area is not working. whole page is scrolling.
+
+      give .chatPageContainer css `flex-basis: 0;`: don't take up more space than you need to
+
+      give .mainContentContainer css `overflow-y: hidden;`
+
+    - scrolling messages to the bottom automatically
+
+      ```js
+      // chatPage.js
+      
+      function scrollToBottom(animated) {
+          const container = $(".chatMessages");
+          const scrollHeight = container[0].scrollHeight;
+          if (animated) {
+              container.animate({ scrollTop: scrollHeight}, "slow");
+          } else {
+              container.scrollTop(scrollHeight);
+          }
+      }
+      ```
+
+      and then call it when documet is ready(after get all the messages) and when message is send. 
+
+11. loading spinner
+
+    ```pug
+    // chatPage.pug
+    
+    .mainContentContainer
+      .loadingSpinnerContainer
+      	img(src="/images/BeanEater-trans.gif", alt="loading spinner")
+      .chatContainer(style="visibility: hidden")
+      	ul.chatMessages
+    ```
+
+    and at the bottom of document ready add this two lines.
+
+    ```js
+    $(".loadingSpinnerContainer").remove();
+    $(".chatContainer").css("visibility", "visible");
+    ```
+
+    
 
 ## Real Time Message: Socket.IO
 

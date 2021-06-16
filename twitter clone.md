@@ -5189,14 +5189,64 @@
 ## Real Time Message: Socket.IO
 
 1. socket io
+
+   socket io will allow us to send/receive messages w/o refreshing the page.
+
+   It will gonna be used in notification too.
+
+   - npm install socket.io
+
+   - app.js
+
+     ```js
+     const io = require("socket.io")(server, { pingTimeout: 60000 }) ;
+     io.on("connection", (socket) => {
+       console.log("connected to socket io")
+     })
+     ```
+
+     pingTimeout: how many ms without a pong packet to consider the connection closed. if you set it as 60000, it will wait a minute till close connection.
+
 2. connect to socket io from the client
+
+   - public/js/clientSocket.js
+
+     ```js
+     let connected = false;
+     let socket = io("http://localhost:3003");
+     ```
+
+     https://socket.io/docs/v2/client-installation/
+
+     `<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>`
+
+     ```pug
+     // main-layout.pug
+     		script(src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js")
+     
+     script(src='/js/clientSocket.js')
+     ```
+
+     at this point, I expect to see "connected to socket io" on terminal. but I got the 400 error on my console instead.. googling........
+
+     someone said it is the issue because the version aren't match with cdn and the one I installed. so I downgraded my socket.io (just matched it with cdn 2.3.0) and it worked!
+
 3. setup socket event handler
+
+   
+
 4. join a chat room
+
 5. send type notification
+
 6. safari messages bug
+
 7. show the typing dots gif when user is typing
+
 8. hide the typing dots
+
 9. send a new message event
+
 10. handle incoming message
 
 ## Send Notification

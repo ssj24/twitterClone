@@ -5199,13 +5199,23 @@
    - app.js
 
      ```js
-     const io = require("socket.io")(server, { pingTimeout: 60000 }) ;
+     const io = require("socket.io")(server, { pingTimeout: 60000 });
      io.on("connection", (socket) => {
-       console.log("connected to socket io")
+       console.log("connected to socket io");
      })
      ```
 
      pingTimeout: how many ms without a pong packet to consider the connection closed. if you set it as 60000, it will wait a minute till close connection.
+
+     when something connected to socket io, socket io will pass in that socket that's connected. so the socket is the client. you could rename it like below.
+
+     ```js
+     io.on("connection", (client) => {
+     	console.log("connected to socket io");
+     })
+     ```
+
+     
 
 2. connect to socket io from the client
 
@@ -5231,9 +5241,57 @@
 
      someone said it is the issue because the version aren't match with cdn and the one I installed. so I downgraded my socket.io (just matched it with cdn 2.3.0) and it worked!
 
+     
+
 3. setup socket event handler
 
-   
+   - app.js
+
+     ```js
+     io.on("connection", (socket) => {
+       socket.on("setup", userData => {
+         console.log(userData.firstName);
+       })
+     })
+     ```
+
+     when the socket(client) received the `setup` event, data will come with it. I will call it userData and console.log() that userData.
+
+   - clientSocket.js
+
+     ```js
+     socket.emit("setup", userLoggedIn);
+     ```
+
+     and make the `setup` event!!
+
+     which means... you could make any name any event!
+
+   - app.js
+
+     ```js
+     io.on("connection", (socket) => {
+       socket.on("setup", userData => {
+         socket.join(userData._id);
+         socket.emit("connected");
+       })
+     })
+     ```
+
+     when we get the setup event, it's going to join the chat room with userData._id. 
+
+     - `join` in socket io: imagine if you join a chat room. chat room with the name userData._id in this case. if you put "my chat" parameter there, socket io will join the chat room which name is my chat. then emit things to that room. then participants of that room will perceive the things.
+     - by setting the room with user id, every user in this site can have their own chat room. we could use it for notification or something.
+
+     since socket is emit something, you need to handle it.
+
+   - clientSocket.js
+
+     ```js
+     socket.on("connected", () => connected = true);
+     ```
+
+     set the first param with the thing that socket emitted. since socket didn't pass any data, inside of parenthesis is empty.
 
 4. join a chat room
 

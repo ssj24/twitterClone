@@ -4789,7 +4789,7 @@
 
      change the .chatMessages to ul tag
 
-   - -webkit-flex: 0; -> prevent the container overlapping at safari.
+   - -webkit-flex: 0; -> prevent the container overlapping at safari. BUT it cause the overlapping so I've delete it...
 
    - align-items: flex-end; at .message  -> make the picture to the bottom line if multiple messages are sent in row.
 
@@ -5295,17 +5295,228 @@
 
 4. join a chat room
 
+   - chatPage.js
+
+     ```js
+     $(document).ready(() => {
+     
+         socket.emit("join room", chatId);
+     ```
+
+   - app.js
+
+     ```js
+     io.on("connection", (socket) => {
+       socket.on("setup", userData => {
+         socket.join(userData._id);
+         socket.emit("connected");
+       })
+     
+       socket.on("join room", room => socket.join(room))
+     })
+     ```
+
 5. send type notification
 
-6. safari messages bug
+   - chatPage.js
 
-7. show the typing dots gif when user is typing
+     ```js
+     $(".inputTextbox").keydown(event => {
+         updateTyping();
+       
+      
+     function updateTyping() {
+         socket.emit("typing", chatId);
+     }
+     ```
 
-8. hide the typing dots
+   - app.js
 
-9. send a new message event
+     ```js
+       socket.on("typing", room => socket.in(room).emit("typing"));
+     
+     ```
 
-10. handle incoming message
+     `in(room)`: to room only. room here is chatId that sent from chatPage.js. if it was like `socket.emit("typing")`, typing will send to all the chat rooms.
+
+   - chatPage.js
+
+     ```js
+     $(document).ready(() => {
+     
+         socket.emit("join room", chatId);
+         socket.on("typing", () => console.log("user is typing"))
+     
+     ```
+
+6. show the typing dots gif when user is typing
+
+   - chatPage.pug
+
+     ```pug
+     .chatContainer(style="visibility: hidden")
+       ul.chatMessages
+       .typingDots
+       	img(src="/images/ellipsis_green.gif", alt="typing dots")
+       .footer
+     ```
+
+     
+
+   - chatPage.js
+
+     socket.on("typing", () => $(".typingDots").show())
+
+7. hide the typing dots
+
+   - chatPage.js
+
+     ```js
+     let typing = false;
+     let lastTypingTime;
+     
+     function updateTyping() {
+         if (!connected) return;
+         if (!typing) {
+             typing = true;
+             socket.emit("typing", chatId);
+         }
+         lastTypingTime = new Date().getTime();
+         const timerLength = 3000;
+         setTimeout(() => {
+             const timeNow = new Date().getTime();
+             const timeDiff = timeNow - lastTypingTime;
+             if (timeDiff >= timerLength && typing) {
+                 socket.emit("stop typing", chatId);
+                 typing = false;
+             }
+         }, timerLength);
+     }
+     ```
+
+     declare the variables at top.
+
+     update the updateTyping function.
+
+     after timerLength execute a callback function.
+
+     if last typing time is more than timer length ago, emit "stop typing" and make typing false.
+
+   - app.js
+
+       socket.on("stop typing", room => socket.in(room).emit("stop typing"));
+
+   - chatPage.js
+
+     socket.on("stop typing", () => $(".typingDots").hide())
+
+   - when message is sent, hide typing dots
+
+     ```js
+     // chatPage.js
+     
+     function messageSubmitted() {
+         const content = $(".inputTextbox").val().trim();
+         
+         if (content != "") {
+             sendMessage(content);
+             $(".inputTextbox").val("");
+             socket.emit("stop typing", chatId);
+             typing = false;
+         }
+     }
+     ```
+
+     add two lines at the bottom at message sumbit function.
+
+8. send a new message event
+
+   - chatPage.js
+
+     ```js
+     function sendMessage(content) {
+         $.post("/api/messages", { content: content, chatId: chatId }, (data, status, xhr) => {
+             if (xhr.status != 201) {
+                 alert("Could not send message");
+                 $(".inputTextbox").val(content);
+                 return;
+             }
+     
+             addChatMessageHtml(data);
+             scrollToBottom(true);
+             if (connected) {
+                 socket.emit("new message", data);
+             }
+         }) 
+     }
+     ```
+
+     add if connected phrase.
+
+   - app.js
+
+     ```js
+     socket.on("new message", newMsg => {
+       const chat = newMsg.chat;
+       if (!chat.users) return console.log("Chat.users not defined.")
+     
+       chat.users.forEach(user => {
+         if (user._id == newMsg.sender._id) return;
+         socket.in(user._id).emit("message received", newMsg);
+       });
+     });
+     ```
+
+     even though the receiver is not in the chat room, the receiver should get the new message noti.. so emit to their own room that we made when first setup the socket
+
+     don't send a message to myself
+
+     
+
+   - handle incoming message
+
+     1. user is in chat room
+     2. user in not in chat room
+
+     ```js
+     // clientSocket.js
+     
+     socket.on("message received", newMsg => messageReceived(newMsg));
+     ```
+
+     ```js
+     // common.js
+     function messageReceived(newMsg) {
+         if ($(".chatContainer").length == 0) {
+             // Show popup notification
+         } else {
+             addChatMessageHtml(newMsg);
+         }
+     }
+     ```
+
+     chatContainer's length means how many instances on that page.
+
+     though addChatMessageHtml function is in chatPage.js, it is fine because at that stage we are already in the chatPage.
+
+     it was not working. because user here was user id. we didn't populate it yet. 
+
+     ```js
+     // messages.js
+     
+     Message.create(newMessage)
+         .then(async results => {
+             results = await results.populate("sender").execPopulate();
+             results = await results.populate("chat").execPopulate();
+             results = await User.populate(results, { path: "chat.users" });
+             
+             Chat.findByIdAndUpdate(req.body.chatId, { latestMessage: results })
+             .catch(error => console.log(error));
+             res.status(201).send(results);
+         })
+     ```
+
+     
 
 ## Send Notification
 

@@ -16,6 +16,8 @@ block content
                     img(src="/images/BeanEater-trans.gif", alt="loading spinner")
                 .chatContainer(style="visibility: hidden")
                     ul.chatMessages
+                    .typingDots
+                        img(src="/images/ellipsis_green.gif", alt="typing dots")
                     .footer
                         textarea.inputTextbox(name="messageInput", placeholder="Type a message...")
                         button.sendMessageButton 

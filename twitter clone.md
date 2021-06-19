@@ -6425,4 +6425,29 @@
 
 ## Improvement
 
-1. chat room -> user's profile page
+1. ace and beek is in the chat a and chat b with different participants. ace types something in chat a, and beek is in chat b at that moment. then what ace typed in chat a displays in chat b. if you reload the page, it disappears.(=> client problem)
+
+   ```js
+   // common.js
+   
+   function messageReceived(newMsg) {
+       if ($(`[data-room="${newMsg.chat._id}"`).length == 0) {
+           showMessagePopup(newMsg);
+       } else {
+           addChatMessageHtml(newMsg);
+       }
+       refreshMessagesBadge();
+   };
+   ```
+
+   It happens because we've just checked chatContainer's existance. distinguish chatContainer by chat id.
+
+   ```pug
+   // chatPage.pug
+   
+   .chatContainer(style="visibility: hidden" data-room="chat._id")
+   ```
+
+   
+
+2. chat room -> user's profile page

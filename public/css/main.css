@@ -134,6 +134,9 @@ button span {
 
 .modal-body {
     min-height: 100px;
+}
+
+.modal-body.pin-body {
     display: flex;
     align-items: center;
 }

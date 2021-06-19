@@ -5,6 +5,7 @@ const User = require("../../schemas/UserSchema");
 const Post = require("../../schemas/PostSchema");
 const Chat = require("../../schemas/ChatSchema");
 const Message = require("../../schemas/MessageSchema");
+const Notification = require("../../schemas/NotificationSchema");
 
 app.use(express.urlencoded({
 	extended: false
@@ -26,8 +27,11 @@ router.post("/", async (req, res, next) => {
         results = await results.populate("chat").execPopulate();
         results = await User.populate(results, { path: "chat.users" });
         
-        Chat.findByIdAndUpdate(req.body.chatId, { latestMessage: results })
+        const chat = await Chat.findByIdAndUpdate(req.body.chatId, { latestMessage: results })
         .catch(error => console.log(error));
+
+        insertNotification(chat, results);
+
         res.status(201).send(results);
     })
     .catch(error => {
@@ -36,5 +40,11 @@ router.post("/", async (req, res, next) => {
     })
 });
 
+function insertNotification(chat, message) {
+    chat.users.forEach(userId => {
+        if (userId == message.sender._id.toString()) return;
+        Notification.insertNotification(userId, message.sender._id, "newMessage", message.chat._id);
+    })
+}
 
 module.exports = router;

@@ -5520,10 +5520,262 @@
 
 ## Send Notification
 
+1. notification page
+
+   - views/notificationsPage.pug
+
+     ```pug
+     extends layouts/main-layout.pug
+     
+     block content
+     	.resultsContainer
+     
+     block headerButton
+     	a(href="/messages/new")
+     		i.fas.fa-comment-dots
+     
+     block scripts 
+     	script(src="/js/notificationsPage.js") 
+     ```
+
+     
+
+   - routes/notificationRoutes.js
+
+     ```js
+     const express = require('express');
+     const app = express();
+     const router = express.Router();
+     const bcrypt = require("bcrypt");
+     const mongoose = require("mongoose");
+     const User = require("../schemas/UserSchema");
+     const Chat = require("../schemas/ChatSchema");
+     
+     router.get("/", (req, res, next) => {
+     
+         res.status(200).render("notificationsPage", {
+             pageTitle: "Notifications",
+             userLoggedIn: req.session.user,
+             userLoggedInJS: JSON.stringify(req.session.user)
+         });
+     });
+     
+     
+     module.exports = router;
+     ```
+
+   - app.js
+
+     ```js
+     const notificationRoute = require("./routes/notificationRoutes");
+     
+     app.use("/notifications", middleware.requireLogin, notificationRoute);
+     
+     ```
+
+     
+
+2. notification schema
+
+   schemas/NotificationSchema.js
+
+   ```js
+   const mongoose = require('mongoose');
+   
+   const Schema = mongoose.Schema;
+   const NotificationSchema = new Schema({
+       userTo: { type: Schema.Types.ObjectId, ref: 'User' },
+       userFrom: { type: Schema.Types.ObjectId, ref: 'User' },
+       notificationType: String,
+       opened: { type: Boolean, default: false },
+       entityId: Schema.Types.ObjectId,
+   }, { timestamps: true });
+   
+   const Notification = mongoose.model('Notification', NotificationSchema);
+   module.exports = Notification;
+   ```
+
+   entityId reference is not specified because it could be anything. in case of like entityId would be the id of the post, in case of  follow entityId would be the id of the user.
+
+3. insert notifications
+
+   there are many cases that we want to insert/send a notification from follow to message. they are all happens outside of notifications route. so what I will  gonna do now is make a code that can be reusable out there.
+
+   ```js
+   // NotificationSchema.js
+   
+   NotificationSchema.statics.insertNotification = async (userTo, userFrom, notificationType, entityId) => {
+       let data = {
+           userTo: userTo,
+           userFrom: userFrom,
+           notificationType: notificationType,
+           entityId: entityId
+       };
+       await Notification.deleteOne(data).catch(error => console.log(error));
+       return Notification.create(data).catch(error => console.log(error));
+   };
+   ```
+
+   by declaring insertNotification function under NotificationSchema, this function can be accessed in anywhere.
+
+   opened has a default value, so it is not specified in the function.
+
+   if there is notification with same data already, delete it first. ex) If one user likes and unlikes repeatedly only one notificaion for each, total two notification will be sent.
+
+4. send a follow notification
+
+   ```js
+   // users.js
+   
+   const Notification = require("../../schemas/NotificationSchema");
+   
+   router.put("/:userId/follow", async (req, res, next) => {
+       const userId = req.params.userId;
+   
+       const user = await User.findById(userId);
+       if (user == null) return res.sendStatus(404);
+       
+       const isFollowing = user.followers && user.followers.includes(req.session.user._id);
+       const option = isFollowing ? "$pull" : "$addToSet";
+   
+       req.session.user = await User.findByIdAndUpdate(req.session.user._id, { [option]: { following: userId } }, { new: true })
+       .catch(error => {
+           console.log(error);
+           res.sendStatus(400);
+       })
+   
+       await User.findByIdAndUpdate(userId, { [option]: { followers: req.session.user._id } })
+       .catch(error => {
+           console.log(error);
+           res.sendStatus(400);
+       })
+   
+       if (!isFollowing) {
+           await Notification.insertNotification(userId, req.session.user._id, "follow", req.session.user._id);
+       }
+   
+       res.status(200).send(req.session.user);
+   });
+   ```
+
+   don't send a noti if it's unfollow
+
+   when the user clicks on this notification, it will take them to a profile page of a person who follows the user.
+
+   if you follow a person now, new notification database will be created. and if you unfollow that person and then follow again, still one notification because we delete the former before we insert new one.
+
+5. send like, retweet, reply notification
+
+   ```js
+   // posts.js
+   
+   const Notification = require("../../schemas/NotificationSchema");
+   
+   
+   router.post("/", async (req, res, next) => {
+   
+       Post.create(postData)
+       .then(async newPost => {
+           newPost = await User.populate(newPost, { path: "postedBy" });
+           newPost = await Post.populate(newPost, { path: "replyTo" });
+           
+           if (newPost.replyTo !== undefined) {
+               await Notification.insertNotification(newPost.replyTo.postedBy, req.session.user._id, "reply", newPost._id);
+           }
+           
+           res.status(201).send(newPost);
+       })
+   });
+   
+   router.put("/:id/like", async (req, res, next) => {
+       if (!isLiked) {
+           await Notification.insertNotification(post.postedBy, userId, "postLike", post._id);
+       }
+   
+       res.status(200).send(post);
+   });
+   
+   router.post("/:id/retweet", async (req, res, next) => {
+       if (!deletedPost) {
+           await Notification.insertNotification(post.postedBy, userId, "retweet", post._id);
+       }
+       res.status(200).send(post);
+   });
+   ```
+
+   
+
+6. send message notification
+
+   send message notification is not same with the other notifications. if the message was sent to the group chat, notifications should be sent multiple users.
+
+   ```js
+   // messages.js
+   
+   const Notification = require("../../schemas/NotificationSchema");
+   
+   		Message.create(newMessage)
+       .then(async results => {
+           results = await results.populate("sender").execPopulate();
+           results = await results.populate("chat").execPopulate();
+           results = await User.populate(results, { path: "chat.users" });
+           
+           const chat = await Chat.findByIdAndUpdate(req.body.chatId, { latestMessage: results })
+           .catch(error => console.log(error));
+   
+           insertNotification(chat, results);
+   
+           res.status(201).send(results);
+       })
+   
+   
+   function insertNotification(chat, message) {
+       chat.users.forEach(userId => {
+           if (userId == message.sender._id.toString()) return;
+           Notification.insertNotification(userId, message.sender._id, "newMessage", message.chat._id);
+       })
+   }
+   ```
+
+   chat.users are ids of chat users. it is not populated. but what we need is id so it is fine.
+
+   it's not async-await because we don't need result here.(:question: why only this one doesn't need a result...?)
+
+   if you compare userId and message.sender._id, those two are not same. because userId is string and message.sender.\_id is objectId. so make the latter string.
+
 ## Display Notification
+
+1. notification api route
+
+2. retrieve notifications from the db
+
+3. create notifications
+
+   - notifications html
+
+   - notification text
+   - notification links
+   - active class
+
+4. make a notification as opened
+
+5. notification click handler
+
+6. mark all notifications as read
 
 ## Unread Notification/message badges
 
+1. add the noti/msg badge to the nav bar
+2. get the number of unread chats
+3. add the number to the unread message badge
+4. add the number to the unread notifications badge
+
 ## Real Time Notification
 
-
+1. send the notification socket event
+2. handle incoming notification
+3. output the popup notification
+4. notifications slide into view
+5. popup message
+6. mark all messages as read
+7. mark unread messages

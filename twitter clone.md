@@ -5747,21 +5747,299 @@
 
 1. notification api route
 
+   - routes/api/notifications.js
+
+     ```js
+     router.get("/", async (req, res, next) => {
+         res.status(200).send("it worked");
+     });
+     ```
+
+   - app.js
+
+     ```js
+     const notificationsApiRoute = require("./routes/api/notifications");
+     
+     app.use("/api/notifications", notificationsApiRoute);
+     ```
+
+   - public/js/notificationsPage.js
+
+     ```js
+     $(document).ready(() => {
+         $.get("/api/notifications/", (data) => {
+             console.log(data);
+         })
+     })
+     ```
+
+     It worked!
+
 2. retrieve notifications from the db
+
+   - notifications.js
+
+     ```js
+     router.get("/", async (req, res, next) => {
+     
+         Notification.find({
+             userTo: req.session.user._id,
+             notificationType: { $ne: "newMessage" }
+         })
+         .populate("userTo")
+         .populate("userFrom")
+         .sort({ createdAt: -1 })
+         .then(results => res.status(200).send(results))
+         .catch(error => {
+             console.log(error);
+             res.sendStatus(400);
+         })
+     });
+     
+     ```
+
+     `$ne`: not equal to
+
+     ​	since it is notification page, show the notification other than new message.
+
+     :hand: I got an error: `Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client`. this error means you are trying to send respond again. I found that I have a res.status(200) line below. after I delete that, error is gone.
 
 3. create notifications
 
    - notifications html
 
+     ```js
+     // notificationsPage.js
+     
+     $(document).ready(() => {
+         $.get("/api/notifications/", (data) => {
+             outputNotificationList(data, $(".resultsContainer"));
+         })
+     })
+     
+     function outputNotificationList(notifications, container) {
+         notifications.forEach(notification => {
+             const html = createNotificationHtml(notification);
+             container.append(html);
+         })
+         if (notifications.length == 0) {
+             container.append("<span class='noResults'>Nothing to show.</span>");
+         }
+     }
+     
+     function createNotificationHtml(notification) {
+         const userFrom = notification.userFrom;
+         return `
+             <a href="#" class="resultListItem notification">
+                 <div class="resultsImageContainer">
+                     <img src="${userFrom.profilePic}" alt="user's profile picture">
+                 </div>
+                 <div class="resultsDetailsContainer ellipsis">
+                 		<span class="ellipsis">TEXT</span>
+                 </div>
+             </a>
+         `;
+     }
+     ```
+
    - notification text
+
+     ```js
+     function createNotificationHtml(notification) {
+         const userFrom = notification.userFrom;
+         const text = getNotificationText(notification);
+         return `
+             <a href="#" class="resultListItem notification">
+                 <div class="resultsImageContainer">
+                     <img src="${userFrom.profilePic}" alt="user's profile picture">
+                 </div>
+                 <div class="resultsDetailsContainer ellipsis">
+                     <span class="ellipsis">${text}</span>
+                 </div>
+             </a>
+         `;
+     }
+     
+     function getNotificationText(notification) {
+         const userFrom = notification.userFrom;
+         if (!userFrom.firstName || !userFrom.lastName) {
+             return alert("user from data not populated")
+         };
+         const userFromName = `${userFrom.firstName} ${userFrom.lastName}`;
+         let text;
+         if (notification.notificationType == "retweet") {
+             text = `${userFromName} retweeted one of your posts`;
+         } else if (notification.notificationType == "postLike") {
+             text = `${userFromName} liked one of your posts`;
+     
+         } else if (notification.notificationType == "reply") {
+             text = `${userFromName} replied one of your posts`;
+         } else if (notification.notificationType == "follow") {
+             text = `${userFromName} followed you`;
+         };
+     
+         return `<span class="ellipsis">${text}</span>`;
+     }
+     ```
+
    - notification links
+
+     ```js
+     function createNotificationHtml(notification) {
+         const userFrom = notification.userFrom;
+         const text = getNotificationText(notification);
+         const href = getNotificationUrl(notification)
+         return `
+             <a href=${href} class="resultListItem notification">
+                 <div class="resultsImageContainer">
+                     <img src="${userFrom.profilePic}" alt="user's profile picture">
+                 </div>
+                 <div class="resultsDetailsContainer ellipsis">
+                     <span class="ellipsis">${text}</span>
+                 </div>
+             </a>
+         `;
+     }
+     
+     function getNotificationUrl(notification) {
+         let url = '#';
+         if (notification.notificationType == "retweet" || 
+             notification.notificationType == "postLike" || 
+             notification.notificationType == "reply") {
+             url = `/post/${notification.entityId}`;
+         } else if (notification.notificationType == "follow") {
+             url = `/profile/${notification.entityId}`;
+         };
+     
+         return url;
+     }
+     ```
+
+     
+
    - active class
+
+     ```js
+     let className = notification.opened ? "" : "active";
+         return `
+             <a href=${href} class="resultListItem notification ${className}">
+     ```
 
 4. make a notification as opened
 
+   - notifications.js
+
+     ```js
+     router.put("/:id/markAsOpened", async (req, res, next) => {
+         Notification.findByIdAndUpdate(req.params.id, { opened: true })
+         .then(() => res.sendStatus(204))
+         .catch(error => {
+             console.log(error);
+             res.sendStatus(400);
+         })
+     })
+     ```
+
+     make opened as true => if you get in notifications page again, className var is not active anymore so background color gone.
+
+   - common.js
+
+     ```js
+     function markNotificationsAsOpened(notificationId = null, callback = null) {
+         if (callback == null) callback = () => location.reload();
+     
+         const url = notificationId != null ? `/api/notifications/${notificationId}/markAsOpened` : `/api/notifications/markAsOpened`;
+         $.ajax({
+             url: url,
+             type: "PUT",
+             success: () => callback()
+         });
+     }
+     ```
+
+     since it could be called in several places, write in common.js
+
+     set a default value both arguments as null for marking all notifications as read.
+
+     you can't set default value of callback as `location.reload()` because default value should be single value not object.
+
+     `success: () => callback()` it could be written like `success: callback`
+
 5. notification click handler
 
+   - common.js
+
+     ```js
+     $(document).on("click", ".notification.active", event => {
+         const container = $(event.target);
+         const notificationId = container.data().id;
+         const href = container.attr("href");
+         event.preventDefault();
+         
+         const callback = () => window.location = href;
+         markNotificationsAsOpened(notificationId, callback);
+     });
+     
+     ```
+
+     don't go to the link yet(preventDefault). 
+
+   - notificationsPage.js
+
+     ```js
+     function createNotificationHtml(notification) {
+       
+       return `<a href=${href} class="resultListItem notification ${className}" data-id="${notification._id}">
+     ```
+
+     add a data
+
+   - main.css
+
+     ```css
+     .resultListItem.notification * {
+         pointer-events: none;
+     }
+     ```
+
+     when you click an notification it throws an 404 error.
+
+     it was because we couldn't click the right href.
+
+     by set css like above, this element will not registered as click event
+
 6. mark all notifications as read
+
+   - notificationsPage.pug
+
+     ```pug
+     block headerButton
+     	button#markNotificationsAsRead
+     		i.fas.fa-check-double
+     ```
+
+   - notificationsPage.js
+
+     ```js
+     $("#markNotificationsAsRead").click(() => markNotificationsAsOpened());
+     ```
+
+     if you give nothing to markNotificationsAOpened func, it will set all notifications opened value as true.
+
+   - notifications.js
+
+     ```js
+     router.put("/markAsOpened", async (req, res, next) => {
+         Notification.updateMany({ userTo: req.session.user._id }, { opened: true })
+         .then(() => res.sendStatus(204))
+         .catch(error => {
+             console.log(error);
+             res.sendStatus(400);
+         })
+     });
+     ```
+
+     
 
 ## Unread Notification/message badges
 

@@ -845,3 +845,21 @@ button span {
 .chatMessages .message.last {
     margin-bottom: 7px;
 }
+
+.resultListItem.active {
+    background-color: var(--pale_green);
+}
+
+.resultListItem.notification * {
+    pointer-events: none;
+}
+
+#markNotificationsAsRead {
+    padding: 8px var(--spacing);
+    color: var(--leaf_green);
+}
+
+#markNotificationsAsRead:hover {
+    border-radius: 50%;
+    background-color: var(--pale_green);
+}

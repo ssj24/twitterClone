@@ -125,6 +125,16 @@ $(document).on("click", ".followButton", event => {
     })
 });
 
+$(document).on("click", ".notification.active", event => {
+    const container = $(event.target);
+    const notificationId = container.data().id;
+    const href = container.attr("href");
+    event.preventDefault();
+    
+    const callback = () => window.location = href;
+    markNotificationsAsOpened(notificationId, callback);
+});
+
 $("#replyModal").on("show.bs.modal", event => {
     const button = $(event.relatedTarget);
     const postId = getPostIdFromElement(button);
@@ -483,7 +493,6 @@ function outputPostsWithReplies(results, container) {
     });
 };
 
-
 function outputUsers(results, container) {
     container.html("");
     results.forEach(result => {
@@ -591,4 +600,15 @@ function messageReceived(newMsg) {
     } else {
         addChatMessageHtml(newMsg);
     }
+};
+
+function markNotificationsAsOpened(notificationId = null, callback = null) {
+    if (callback == null) callback = () => location.reload();
+
+    const url = notificationId != null ? `/api/notifications/${notificationId}/markAsOpened` : `/api/notifications/markAsOpened`;
+    $.ajax({
+        url: url,
+        type: "PUT",
+        success: () => callback()
+    });
 }

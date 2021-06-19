@@ -115,6 +115,7 @@ function addChatMessageHtml(message) {
     }
     const messageDiv = createMessageHtml(message, null, "");
     addMessagesHtmlToPage(messageDiv);
+    scrollToBottom(true);
 }
 
 function createMessageHtml(message, nextMessage, lastSenderId) {

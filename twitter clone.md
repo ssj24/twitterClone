@@ -6044,9 +6044,146 @@
 ## Unread Notification/message badges
 
 1. add the noti/msg badge to the nav bar
+
+   - main-layout.pug
+
+     ```pug
+     a(href="/notifications")
+       i.fas.fa-bell
+       span#notificationBadge
+     a(href="/messages")
+       i.fas.fa-envelope
+       span#messageBadge
+     ```
+
 2. get the number of unread chats
+
+   - common.js
+
+     ```js
+     $(document).ready(() => refreshMessagesBadge());
+     
+     
+     function refreshMessagesBadge() {
+         $.get("/api/chats", { unreadOnly: true }, (data) => {
+             console.log(data.length);
+         })
+     };
+     ```
+
+   - chats.js
+
+     make unreadOnly filter
+
+     ```js
+     router.get("/", async (req, res, next) => {
+       .then(async results => {
+               if (req.query.unreadOnly !== undefined && req.query.unreadOnly == true) {
+                   results = results.filter(r => !r.latestMessage.readBy.includes(req.session.user._id));
+               }
+     
+               results = await User.populate(results, { path: "latestMessage.sender "});
+               res.status(200).send(results)
+           })
+     ```
+
+     because we've alread populate the latestMessage, we can access to latestMessage.readBy
+
 3. add the number to the unread message badge
+
+   ```js
+   // common.js
+   function refreshMessagesBadge() {
+       $.get("/api/chats", { unreadOnly: true }, (data) => {
+           const numResults = data.length;
+           if (numResults > 0) {
+               $("#messageBadge").text(numResults).addClass("active");
+           } else {
+               $("#messageBadge").text("").removeClass("active");
+           }
+       })
+   };
+   ```
+
+   update messageReceived function too.
+
+   ```js
+   // common.js
+   function messageReceived(newMsg) {
+       if ($(".chatContainer").length == 0) {
+           // Show popup notification
+       } else {
+           addChatMessageHtml(newMsg);
+       }
+       refreshMessagesBadge();
+   };
+   ```
+
+   :hand: at this moment, I've realized that something is wrong. because the filter didn't work. and the reason it is not working is latestMessage.readBy is empty array. 
+
+   1) set readBy as loggedIn Id when message is created.
+
+   ```js
+   // messages.js
+   
+   router.post("/", async (req, res, next) => {
+       if (!req.body.content || !req.body.chatId) {
+           console.log("Invalid data passed into request.");
+           return res.sendStatus(400);
+       }
+       const newMessage = {
+           sender: req.session.user._id,
+           content: req.body.content,
+           chat: req.body.chatId,
+           readBy: req.session.user._id
+       };
+   ```
+
+   2)
+
 4. add the number to the unread notifications badge
+
+   - common.js
+
+     ```js
+     $(document).ready(() => {
+         refreshMessagesBadge();
+         refreshNotificationsBadge();
+     });
+     
+     
+     function refreshNotificationsBadge() {
+         $.get("/api/notifications", { unreadOnly: true }, (data) => {
+             const numResults = data.length;
+             if (numResults > 0) {
+                 $("#notificationBadge").text(numResults).addClass("active");
+             } else {
+                 $("#notificationBadge").text("").removeClass("active");
+             }
+         })
+     };
+     ```
+
+   - notifications.js
+
+     update router.get("/") a bit
+
+     ```js
+     router.get("/", async (req, res, next) => {
+         
+         let searchObj = {
+             userTo: req.session.user._id,
+             notificationType: { $ne: "newMessage" }
+         };
+     
+         if (req.query.unreadOnly !== undefined && req.query.unreadOnly == "true") {
+             searchObj.opened = false;
+         }
+     
+         Notification.find(searchObj)
+     ```
+
+     :question: it is working. and I don't know why kkkkkkkkkkkkkkkkkk
 
 ## Real Time Notification
 
@@ -6057,3 +6194,11 @@
 5. popup message
 6. mark all messages as read
 7. mark unread messages
+
+
+
+
+
+## Improvement
+
+1. chat room -> user's profile page

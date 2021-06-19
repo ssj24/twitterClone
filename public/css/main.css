@@ -59,6 +59,7 @@ nav a {
     align-items: center;
     justify-content: center;
     color: #212529;
+    position: relative;
 }
 
 nav .logoImage {
@@ -70,6 +71,28 @@ nav a:hover {
     color: var(--leaf_green);
     background-color: var(--pale_green);
     border-radius: 50%;
+}
+
+#notificationBadge,
+#messageBadge {
+    background-color: var(--red);
+    height: 25px;
+    width: 25px;
+    border-radius: 50%;
+    position: absolute;
+    top: 0;
+    right: 0;
+    color: white;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    visibility: hidden;
+}
+
+#notificationBadge.active,
+#messageBadge.active {
+    visibility: visible;
 }
 
 button {

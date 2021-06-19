@@ -9,7 +9,7 @@ $(document).ready(() => {
 
     $.get(`/api/chats/${chatId}`, (data) => {
         $("#chatName").text(getChatName(data));
-    })
+    });
 
     $.get(`/api/chats/${chatId}/messages`, data => {
         let messages = [];
@@ -26,12 +26,12 @@ $(document).ready(() => {
 
         $(".loadingSpinnerContainer").remove();
         $(".chatContainer").css("visibility", "visible");
-    })
-})
+    });
+});
 
 function addMessagesHtmlToPage(html) {
     $(".chatMessages").append(html);
-}
+};
 
 $("#chatNameButton").click(() => {
     const name = $("#chatNameTextbox").val().trim();
@@ -47,8 +47,8 @@ $("#chatNameButton").click(() => {
                 location.reload();
             }
         }
-    })
-})
+    });
+});
 
 $(".sendMessageButton").click(() => {
     messageSubmitted();
@@ -79,7 +79,7 @@ function updateTyping() {
             typing = false;
         }
     }, timerLength);
-}
+};
 
 function messageSubmitted() {
     const content = $(".inputTextbox").val().trim();
@@ -89,8 +89,8 @@ function messageSubmitted() {
         $(".inputTextbox").val("");
         socket.emit("stop typing", chatId);
         typing = false;
-    }
-}
+    };
+};
 
 function sendMessage(content) {
     $.post("/api/messages", { content: content, chatId: chatId }, (data, status, xhr) => {
@@ -98,25 +98,25 @@ function sendMessage(content) {
             alert("Could not send message");
             $(".inputTextbox").val(content);
             return;
-        }
+        };
 
         addChatMessageHtml(data);
         scrollToBottom(true);
         if (connected) {
             socket.emit("new message", data);
-        }
-    }) 
+        };
+    });
 }
-
+;
 function addChatMessageHtml(message) {
     if (!message || !message._id) {
         alert("Message is not valid");
         return;
-    }
+    };
     const messageDiv = createMessageHtml(message, null, "");
     addMessagesHtmlToPage(messageDiv);
     scrollToBottom(true);
-}
+};
 
 function createMessageHtml(message, nextMessage, lastSenderId) {
     const sender = message.sender;
@@ -141,11 +141,11 @@ function createMessageHtml(message, nextMessage, lastSenderId) {
             userContainer = `<div class="userContainer">${imageContainer}${nameElement}</div>`;
         
         }
-    }
+    };
 
     if (isLast) {
         liClassName += " last";
-    }
+    };
 
     return `
         ${userContainer}
@@ -156,8 +156,8 @@ function createMessageHtml(message, nextMessage, lastSenderId) {
                 </span>
             </div>
         </li>
-    `
-}
+    `;
+};
 
 function scrollToBottom(animated) {
     const container = $(".chatMessages");
@@ -166,5 +166,13 @@ function scrollToBottom(animated) {
         container.animate({ scrollTop: scrollHeight}, "slow");
     } else {
         container.scrollTop(scrollHeight);
-    }
-}
+    };
+};
+
+function markAllMessagesAsRead() {
+    $.ajax({
+        url: `/api/chats/${chatId}/messages/markAsRead`,
+        type: "PUT",
+        success: () => refreshMessagesBadge()
+    });
+};

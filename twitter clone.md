@@ -6079,13 +6079,15 @@
      router.get("/", async (req, res, next) => {
        .then(async results => {
                if (req.query.unreadOnly !== undefined && req.query.unreadOnly == true) {
-                   results = results.filter(r => !r.latestMessage.readBy.includes(req.session.user._id));
+                   results = results.filter(r => r.latestMessage && !r.latestMessage.readBy.includes(req.session.user._id));
                }
      
                results = await User.populate(results, { path: "latestMessage.sender "});
                res.status(200).send(results)
            })
      ```
+
+     In case chat doesn't have latestMessage, check that too.
 
      because we've alread populate the latestMessage, we can access to latestMessage.readBy
 
@@ -6188,14 +6190,236 @@
 ## Real Time Notification
 
 1. send the notification socket event
+
+   - clientSocket.js
+
+     ```js
+     socket.on("notification received", (newNotification) => {
+         console.log("new notification");
+     });
+     
+     function emitNotification(userId) {
+         if (userId == userLoggedIn._id) return;
+         socket.emit("notification received", userId);
+     }
+     ```
+
+   - app.js
+
+     ```js
+     socket.on("notification received", room => socket.in(room).emit("notification received"));
+     ```
+
+   - common.js
+
+     all the place where you need to get the notification
+
+     ```js
+     $(document).on("click", ".likeButton", event => {
+     
+     $.ajax({
+             url: `/api/posts/${postId}/like`,
+             type: "PUT",
+             success: postData => {
+                 button.find("span").text(postData.likes.length || "");
+                 if (postData.likes.includes(userLoggedIn._id)) {
+                     button.addClass("active");
+                     emitNotification(postData.postedBy);
+     ```
+
+     ```js
+     $(document).on("click", ".retweetButton", event => {
+     
+       $.ajax({
+             url: `/api/posts/${postId}/retweet`,
+             type: "POST",
+             success: postData => {
+                 button.find("span").text(postData.retweetUsers.length || "");
+                 if (postData.retweetUsers.includes(userLoggedIn._id)) {
+                     button.addClass("active");
+                     emitNotification(postData.postedBy);
+     ```
+
+     ```js
+     $(document).on("click", ".followButton", event => {
+       
+         $.ajax({
+             url: `/api/users/${userId}/follow`,
+             type: "PUT",
+             success: (data, status, xhr) => {
+                 if (xhr.status == 404) {
+                     return;
+                 }
+                 let difference = 1;
+                 if (data.following && data.following.includes(userId)) {
+                     button.addClass("following");
+                     button.text("Following");
+                     emitNotification(userId);
+     ```
+
+     ```js
+     $("#submitPostButton, #submitReplyButton").click(event => {
+     
+       $.post("/api/posts", data, postData => {
+     
+             if(postData.replyTo) {
+                 emitNotification(postData.replyTo.postedBy);
+                 location.reload();
+     ```
+
+     
+
 2. handle incoming notification
+
+   ```js
+   // clientSocket.js
+   
+   socket.on("notification received", (newNotification) => {
+       $.get("/api/notifications/latest", (notificationData) => {
+           refreshNotificationsBadge();
+       })
+   });
+   ```
+
+   ```js
+   // notifications.js
+   
+   router.get("/latest", async (req, res, next) => {
+       Notification.findOne({ userTo: req.session.user._id })
+       .populate("userTo")
+       .populate("userFrom")
+       .sort({ createdAt: -1 })
+       .then(results => res.status(200).send(results))
+       .catch(error => {
+           console.log(error);
+           res.sendStatus(400);
+       })
+   });
+   ```
+
+   
+
 3. output the popup notification
+
+   - common.js
+
+     ```js
+     function showNotificationPopup(data) {
+         const html = createNotificationHtml(data);
+         const element = $(html);
+         element.prependTo("#notificationList");
+     
+         setTimeout(() => element.fadeOut(400), 5000);
+     }
+     ```
+
+     we need createNotificationHtml function along with getNotificationText, getNotificationUrl. so move those functions from notificationsPage.js to common.js
+
+   - main-layout.pug
+
+     ```pug
+     .wrapper
+     
+     #notificationList
+     ```
+
+   - clientSocket.js
+
+     ```js
+     socket.on("notification received", (newNotification) => {
+         $.get("/api/notifications/latest", (notificationData) => {
+             showNotificationPopup(notificationData);
+             refreshNotificationsBadge();
+         })
+     });
+     ```
+
+     
+
 4. notifications slide into view
+
+   ```js
+   // common.js
+   element.hide().prependTo("#notificationList").slideDown("fast");
+   
+   ```
+
+   before attach content hide the element first(otherwise empty container will slide down first), then add contents and then slidedown.
+
 5. popup message
+
+   ```js
+   // common.js
+   function messageReceived(newMsg) {
+       if ($(".chatContainer").length == 0) {
+           showMessagePopup(newMsg);
+       } else {
+         
+   function showMessagePopup(data) {
+       if (!data.chat.latestMessage._id) {
+           data.chat.latestMessage = data;
+       }
+       const html = createChatHtml(data.chat);
+       const element = $(html);
+       
+       element.hide().prependTo("#notificationList").slideDown("fast");
+   
+       setTimeout(() => element.fadeOut(400), 5000);
+   };
+   ```
+
+    `    if ($(".chatContainer").length == 0) {` means if .chatContainer is not in the window.
+
+   bring createChatHtml, getLatestMessage, getChatImageElements, getUserChatImageElement functions from inboxPage.js to common.js
+
+   if latestMessage is not populated, argument is the latestMessage.
+
 6. mark all messages as read
+
+   - chatPage.js
+
+     ```js
+     function markAllMessagesAsRead() {
+         $.ajax({
+             url: `/api/chat/${chatId}/messages/markAsRead`,
+             type: "PUT",
+             success: () => refreshMessagesBadge()
+         });
+     };
+     ```
+
+   - chats.js
+
+     ```js
+     router.put("/:chatId/messages/markAsRead", async (req, res, next) => {
+         Message.updateMany({ chat: req.params.chatId }, { $addToSet: { readBy: req.session.user._id }})
+         .then(() => res.sendStatus(204))
+         .catch(error => {
+             console.log(error);
+             res.sendStatus(400);
+         });
+     });
+     ```
+
+     :wrench: it is not working too... readBy is not getting updated..........
+
 7. mark unread messages
 
+   - common.js
 
+     ```js
+     function createChatHtml(chatData) {
+         const chatName = getChatName(chatData);
+         const image = getChatImageElements(chatData);
+         const latestMessage = getLatestMessage(chatData.latestMessage);
+     
+         let activeClass = !chatData.latestMessage || chatData.latestMessage.readBy.includes(userLoggedIn._id) ? "" : "active";
+     
+         return `
+         <a href="/messages/${chatData._id}" class="resultListItem ${activeClass}">
+     ```
+
+     if it is brand new chat or user logged in already read latest message => nothing. else => active class
 
 
 

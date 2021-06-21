@@ -6484,7 +6484,7 @@
 
 5. message badge error
 
-   210621 I forgot to call the function that updates readBy:) when chatPage is loaded, call markAllmessagesAsRead function.
+   210621 I forgot to call the function that updates readBy:) when chatPage is loaded, call markAllmessageysAsRead function.
 
 6. space at right
 
@@ -6507,9 +6507,11 @@
 
 8. update login/register page
 
+   210621
+
    https://codepen.io/andytran/pen/RPBdgM
 
-   
+   add fontawesome script in login-layout.pug
 
 9. notification page looks so umm... not catchy..?
 

@@ -78,7 +78,9 @@ io.on("connection", (socket) => {
 		socket.emit("connected");
 	});
 
-	socket.on("join room", room => socket.join(room));
+	socket.on("join room", room => {
+		socket.join(room)
+	});
 	socket.on("typing", room => socket.in(room).emit("typing"));
 	socket.on("stop typing", room => socket.in(room).emit("stop typing"));
 	socket.on("notification received", room => socket.in(room).emit("notification received"));

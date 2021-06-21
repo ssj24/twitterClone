@@ -20,7 +20,7 @@ router.post("/", async (req, res, next) => {
         sender: req.session.user._id,
         content: req.body.content,
         chat: req.body.chatId,
-        readBy: req.session.user._id
+        readBy: [req.session.user._id]
     };
     Message.create(newMessage)
     .then(async results => {

@@ -23,7 +23,8 @@ $(document).ready(() => {
         const messagesHtml = messages.join("");
         addMessagesHtmlToPage(messagesHtml);
         scrollToBottom(false);
-
+        markAllMessagesAsRead();
+        
         $(".loadingSpinnerContainer").remove();
         $(".chatContainer").css("visibility", "visible");
     });
@@ -135,7 +136,7 @@ function createMessageHtml(message, nextMessage, lastSenderId) {
     if (isFirst) {
         liClassName += " first";
         if (!isMine) {
-            nameElement = `<span class="senderName">${senderName}</span>`;
+            nameElement = `<a href="/profile/${currentSenderId}"><span class="senderName">${senderName}</span></a>`;
             profileImage = `<img src="${sender.profilePic}">`;
             imageContainer = `<div class="imageContainer">${profileImage}</div>`;
             userContainer = `<div class="userContainer">${imageContainer}${nameElement}</div>`;

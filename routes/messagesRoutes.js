@@ -18,7 +18,7 @@ router.get("/", (req, res, next) => {
 router.get("/new", (req, res, next) => {
 
     res.status(200).render("newMessage", {
-        pageTitle: "New message",
+        pageTitle: "New chat",
         userLoggedIn: req.session.user,
         userLoggedInJS: JSON.stringify(req.session.user)
     });

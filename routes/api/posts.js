@@ -24,8 +24,9 @@ router.get("/", async (req, res, next) => {
         const followingOnly = searchObj.followingOnly == "true";
         if (followingOnly) {
             let objectIds = [];
-            if (!req.session.user.following) {
-                req.session.user.following = [];
+            if (req.session.user.following.length === 0) {
+                const results = await getPosts();
+                return res.status(200).send(results);
             }
             req.session.user.following.forEach(user => {
                 objectIds.push(user);

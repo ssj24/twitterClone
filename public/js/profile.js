@@ -18,6 +18,7 @@ function loadPosts() {
 
 function loadReplies() {
     $.get("/api/posts", { postedBy: profileUserId, isReply: true }, results => {
+        $(".pinnedPostContainer").remove();
         outputPosts(results, $(".postsContainer"));
     });
 };

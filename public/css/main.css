@@ -906,3 +906,19 @@ button span {
 #notificationList .active {
     background-color: white;
 }
+
+.headerButton {
+    padding: 7px 10px;
+    border-radius: 5px;
+}
+
+.headerButton:hover {
+    color: var(--leaf_green);
+    font-weight: bold;
+}
+
+.pWithI {
+    display: inline-block;
+    margin: 0;
+    margin-right: 5px;
+}

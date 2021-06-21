@@ -6137,11 +6137,9 @@
            sender: req.session.user._id,
            content: req.body.content,
            chat: req.body.chatId,
-           readBy: req.session.user._id
+           readBy: [req.session.user._id]
        };
    ```
-
-   2)
 
 4. add the number to the unread notifications badge
 
@@ -6448,6 +6446,70 @@
    .chatContainer(style="visibility: hidden" data-room="chat._id")
    ```
 
+2. Another Message issue:
+
+   It is not necessary to increase UnreadMessageBadge Count and set a message to unread for users who are already inside chatroom.
+
+   Simple fix:
+
+   For example, We will either show message notification or add message to page depending on user Current location.
+
+   So, we can simply `markAllMessagesAsRead()` for those users who are already in that chat page by passing `newMessage.chat._id`
+
    
 
-2. chat room -> user's profile page
+   ```js
+   function messageReceived(newMessage) {    
+     if($(`[data-room="${newMessage.chat._id}"]`).length == 0) {
+       // Show popup notification
+       showMessagePopup(newMessage);    
+     }    
+     else {
+       addChatMessageHtml(newMessage);
+       markAllMessagesAsRead();
+       // Fix -> pass newMessage.chat._id as
+       // a chatID to send to endpoint
+     }
+     refreshMessagesBadge()
+   }
+   ```
+
+3. chat room -> user's profile page
+
+   210621 just wrap the chatter's name with a tag
+
+4. profile page replies tab has pinned post line.
+
+   210621 add `$(".pinnedPostContainer").remove();` when loadReplies function called.
+
+5. message badge error
+
+   210621 I forgot to call the function that updates readBy:) when chatPage is loaded, call markAllmessagesAsRead function.
+
+6. space at right
+
+7. If I have 0 follow, I can't see the other's posts at home. 
+
+   1. 0 follow => show all posts
+
+      210621 update the logic when home page is loaded
+
+      ```js
+      if (req.session.user.following.length === 0) {
+        const results = await getPosts();
+        return res.status(200).send(results);
+      }
+      ```
+
+      when get posts request with followingOnly query is coming, first check wheter the following list is empty. if it's empty call getPosts without parameter.
+
+   2. make explore page
+
+8. update login/register page
+
+   https://codepen.io/andytran/pen/RPBdgM
+
+   
+
+9. notification page looks so umm... not catchy..?
+

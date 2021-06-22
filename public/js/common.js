@@ -344,93 +344,108 @@ function getPostIdFromElement(element) {
 function createPostHtml(postData, largeFont = false) {
     if (postData == null) return alert("post object is null");
     const isRetweet = postData.retweetData !== undefined;
-    const retweetedBy = isRetweet ? postData.postedBy.username : null;
-    postData = isRetweet ? postData.retweetData : postData;
-    const postedBy = postData.postedBy;
-    const displayName = postedBy.firstName + " " + postedBy.lastName;
-    const timestamp = timeDifference(new Date(), new Date(postData.createdAt));
-    const likeButtonActiveClass = postData.likes.includes(userLoggedIn._id) ? "active" : "";
-    const retweetButtonActiveClass = postData.retweetUsers.includes(userLoggedIn._id) ? "active" : "";
-    const largeFontClass = largeFont ? "largeFont" : "";
-
-    let retweetText = '';
-    if (isRetweet) {
-        retweetText = `<i class="fas fa-retweet"></i>&nbsp;<span>Retweeted by <a href='/profile/${retweetedBy}'>@${retweetedBy}</a></span>`
-    }
-
-    let replyFlag = "";
-    if (postData.replyTo && postData.replyTo._id) {
-        if (!postData.replyTo.postedBy._id) return alert("Reply to is not populated");
-        const replyToUsername = postData.replyTo.postedBy.username;
-        replyFlag = `
-        <div class="replyFlag">
-            Replying to <a href="/profile/${replyToUsername}">@${replyToUsername}</a>
-        </div>
-        `;
-    }
-
-    let buttons = ``;
-    let pinnedPostText = "";
-    if (postedBy._id == userLoggedIn._id) {
-        let pinnedClass = "";
-        let dataTarget = "#confirmPinModal";
-        if (postData.pinned === true) {
-            pinnedClass = "active";
-            dataTarget = "#unpinModal";
-            pinnedPostText = `
-                <i class="fas fa-thumbtack"></i>
-                 <span>Pinned post</span>
+    if (isRetweet && postData.retweetData == null) {
+        return '';
+    } else {
+        const retweetedBy = isRetweet ? postData.postedBy.username : null;
+        const retweetedById = isRetweet ? postData.postedBy._id : null;
+        const retweetPostId = postData._id;
+        postData = isRetweet ? postData.retweetData : postData;
+        const postedBy = postData.postedBy;
+        const displayName = postedBy.firstName + " " + postedBy.lastName;
+        const timestamp = timeDifference(new Date(), new Date(postData.createdAt));
+        const likeButtonActiveClass = postData.likes.includes(userLoggedIn._id) ? "active" : "";
+        const retweetButtonActiveClass = postData.retweetUsers.includes(userLoggedIn._id) ? "active" : "";
+        const largeFontClass = largeFont ? "largeFont" : "";
+    
+        let retweetText = '';
+        if (isRetweet) {
+            retweetText = `<i class="fas fa-retweet"></i>&nbsp;<span>Retweeted by <a href='/profile/${retweetedBy}'>@${retweetedBy}</a></span>`
+        }
+    
+        let replyFlag = "";
+        if (postData.replyTo && postData.replyTo._id) {
+            if (!postData.replyTo.postedBy._id) return alert("Reply to is not populated");
+            const replyToUsername = postData.replyTo.postedBy.username;
+            replyFlag = `
+            <div class="replyFlag">
+                Replying to <a href="/profile/${replyToUsername}">@${replyToUsername}</a>
+            </div>
             `;
         }
-        buttons = `
-        <button class="confirmPinButton ${pinnedClass}" data-id="${postData._id}" data-toggle="modal" data-target=${dataTarget}><i class="fas fa-thumbtack"></i></button>
-        <button class="deletePostButton" data-id="${postData._id}" data-toggle="modal" data-target="#deletePostModal"><i class="fas fa-times"></i></button>
-        `
+    
+        let buttons = ``;
+        let pinnedPostText = "";
+        if (postedBy._id == userLoggedIn._id) {
+            let pinnedClass = "";
+            let dataTarget = "#confirmPinModal";
+            if (postData.pinned === true) {
+                pinnedClass = "active";
+                dataTarget = "#unpinModal";
+                pinnedPostText = `
+                    <i class="fas fa-thumbtack"></i>
+                     <span>Pinned post</span>
+                `;
+            }
+            buttons = `
+            <button class="confirmPinButton ${pinnedClass}" data-id="${postData._id}" data-toggle="modal" data-target=${dataTarget}><i class="fas fa-thumbtack"></i></button>
+            <button class="deletePostButton" data-id="${postData._id}" data-toggle="modal" data-target="#deletePostModal"><i class="fas fa-times"></i></button>
+            `;
+            if (isRetweet && retweetedById != userLoggedIn._id) {
+                buttons = ``;
+            };
+        };
+        if (isRetweet && retweetedById == userLoggedIn._id) {
+            buttons = `
+            <button class="deletePostButton" data-id="${retweetPostId}" data-toggle="modal" data-target="#deletePostModal"><i class="fas fa-times"></i></button>
+            `;
+        };
+    
+        return `
+        <div class="post ${largeFontClass}" data-id="${postData._id}">
+            <div class="postActionContainer">
+                ${pinnedPostText} &nbsp; ${retweetText}
+            </div>
+            <div class="mainContentContainer">
+                <div class="userImageContainer">
+                    <img src="${postedBy.profilePic}">
+                </div>
+                <div class="postContentContainer">
+                    <div class="postHeader">
+                        <a href="/profile/${postedBy.username}" class="displayName">${displayName}</a>
+                        <span class="username">@${postedBy.username}</span>
+                        <span class="date">${timestamp}</span>
+                        ${buttons}
+                    </div>
+                    ${replyFlag}
+                    <div class="postBody">
+                        <span>${postData.content}</span>
+                    </div>
+                    <div class="postFooter">
+                        <div class="postButtonContainer">
+                            <button class="replyButton green" data-toggle="modal" data-target="#replyModal">
+                                <i class="far fa-comment"></i>
+                                <span>${postData.likes.length || ""}</span>
+                            </button>
+                        </div>
+                        <div class="postButtonContainer">
+                            <button class="retweetButton ${retweetButtonActiveClass} blue">
+                                <i class="fas fa-retweet"></i>
+                                <span>${postData.retweetUsers.length || ""}</span>
+                            </button>
+                        </div>
+                        <div class="postButtonContainer">
+                            <button class="likeButton ${likeButtonActiveClass} red">
+                                <i class="far fa-heart"></i>
+                                <span>${postData.likes.length || ""}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
     };
-    return `
-    <div class="post ${largeFontClass}" data-id="${postData._id}">
-        <div class="postActionContainer">
-            ${pinnedPostText} &nbsp; ${retweetText}
-        </div>
-        <div class="mainContentContainer">
-            <div class="userImageContainer">
-                <img src="${postedBy.profilePic}">
-            </div>
-            <div class="postContentContainer">
-                <div class="postHeader">
-                    <a href="/profile/${postedBy.username}" class="displayName">${displayName}</a>
-                    <span class="username">@${postedBy.username}</span>
-                    <span class="date">${timestamp}</span>
-                    ${buttons}
-                </div>
-                ${replyFlag}
-                <div class="postBody">
-                    <span>${postData.content}</span>
-                </div>
-                <div class="postFooter">
-                    <div class="postButtonContainer">
-                        <button class="replyButton green" data-toggle="modal" data-target="#replyModal">
-                            <i class="far fa-comment"></i>
-                            <span>${postData.likes.length || ""}</span>
-                        </button>
-                    </div>
-                    <div class="postButtonContainer">
-                        <button class="retweetButton ${retweetButtonActiveClass} blue">
-                            <i class="fas fa-retweet"></i>
-                            <span>${postData.retweetUsers.length || ""}</span>
-                        </button>
-                    </div>
-                    <div class="postButtonContainer">
-                        <button class="likeButton ${likeButtonActiveClass} red">
-                            <i class="far fa-heart"></i>
-                            <span>${postData.likes.length || ""}</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>`;
-};
+    }
 
 function timeDifference(current, previous) {
 
@@ -608,6 +623,7 @@ function messageReceived(newMsg) {
         showMessagePopup(newMsg);
     } else {
         addChatMessageHtml(newMsg);
+        markAllMessagesAsRead();
     }
     refreshMessagesBadge();
 };

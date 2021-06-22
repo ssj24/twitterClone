@@ -6515,3 +6515,25 @@
 
 9. notification page looks so umm... not catchy..?
 
+10. Is it right to original poster can delete retweeted post..?
+
+    Ok... I tried to delete the retweeted post(originally posted by me), and it throws an error..related to postedBy...
+
+    I tweeted a post, user A retweeted it and user B retweeted my post too.
+
+    and I noticed that delete and pin button in retweet. I deleted the one user A retweeted. after that user A's and user B's retweet post gives me an error.
+
+    which means delete button actually delete the original one, and two retweeted post got an error because they couldn't find the original post..
+
+    1. update common.js - createPostHtml
+
+       if the post is retweeted and I'm not a retweeter I can't see pin or delete button.
+
+       if the post is retweeted and I'm a retweeter I can see delete button only. and delete post id is retweet post id.
+
+       :wrench:currently it is not working... if I delete the retweet, original post is also not displaying
+
+    2. if original post is deleted don't show the retweet too.
+
+    3. replyTo could be matter too.
+

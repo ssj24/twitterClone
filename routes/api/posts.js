@@ -40,6 +40,15 @@ router.get("/", async (req, res, next) => {
     res.status(200).send(results);
 });
 
+router.get("/likes", async (req, res, next) => {
+    const userLikes = req.session.user.likes;
+    if (userLikes !== undefined) {
+        const post = await getPosts({ '_id': { $in: userLikes }})
+        return res.status(200).send(post);
+    };
+    res.sendStatus(200);
+});
+
 router.post("/", async (req, res, next) => {
     if (!req.body.content) {
         console.log("Content param not sent with request");
@@ -177,6 +186,7 @@ router.put("/:id", async (req, res, next) => {
         res.sendStatus(400);
     })
 });
+
 
 async function getPosts(filter) {
     let results = await Post.find(filter)

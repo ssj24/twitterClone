@@ -158,6 +158,7 @@ $("#replyModal").on("hidden.bs.modal", () => $("#originalPostContainer").html(""
 $("#deletePostModal").on("show.bs.modal", event => {
     const button = $(event.relatedTarget);
     const postId = getPostIdFromElement(button);
+    console.log(button, postId);
     $("#deletePostButton").data("id", postId);
 });
 
@@ -360,10 +361,12 @@ function createPostHtml(postData, largeFont = false) {
     
         let retweetText = '';
         if (isRetweet) {
+            console.log(retweetPostId, postData._id);
             retweetText = `<i class="fas fa-retweet"></i>&nbsp;<span>Retweeted by <a href='/profile/${retweetedBy}'>@${retweetedBy}</a></span>`
         }
     
         let replyFlag = "";
+        if (postData.replyTo !== undefined && postData.replyTo == null) return '';
         if (postData.replyTo && postData.replyTo._id) {
             if (!postData.replyTo.postedBy._id) return alert("Reply to is not populated");
             const replyToUsername = postData.replyTo.postedBy.username;
@@ -396,13 +399,14 @@ function createPostHtml(postData, largeFont = false) {
             };
         };
         if (isRetweet && retweetedById == userLoggedIn._id) {
+            console.log(retweetPostId);
             buttons = `
             <button class="deletePostButton" data-id="${retweetPostId}" data-toggle="modal" data-target="#deletePostModal"><i class="fas fa-times"></i></button>
             `;
         };
     
         return `
-        <div class="post ${largeFontClass}" data-id="${postData._id}">
+        <div class="post ${largeFontClass}" data-id="${isRetweet ? retweetPostId : postData._id}">
             <div class="postActionContainer">
                 ${pinnedPostText} &nbsp; ${retweetText}
             </div>

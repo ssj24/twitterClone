@@ -6486,9 +6486,7 @@
 
    210621 I forgot to call the function that updates readBy:) when chatPage is loaded, call markAllmessageysAsRead function.
 
-6. space at right
-
-7. If I have 0 follow, I can't see the other's posts at home. 
+6. If I have 0 follow, I can't see the other's posts at home. 
 
    1. 0 follow => show all posts
 
@@ -6505,7 +6503,7 @@
 
    2. make explore page
 
-8. update login/register page
+7. update login/register page
 
    210621
 
@@ -6513,27 +6511,92 @@
 
    add fontawesome script in login-layout.pug
 
-9. notification page looks so umm... not catchy..?
+8. notification page looks so umm... not catchy..?
 
-10. Is it right to original poster can delete retweeted post..?
+9. Is it right to original poster can delete retweeted post..?
 
-    Ok... I tried to delete the retweeted post(originally posted by me), and it throws an error..related to postedBy...
+   Ok... I tried to delete the retweeted post(originally posted by me), and it throws an error..related to postedBy...
 
-    I tweeted a post, user A retweeted it and user B retweeted my post too.
+   I tweeted a post, user A retweeted it and user B retweeted my post too.
 
-    and I noticed that delete and pin button in retweet. I deleted the one user A retweeted. after that user A's and user B's retweet post gives me an error.
+   and I noticed that delete and pin button in retweet. I deleted the one user A retweeted. after that user A's and user B's retweet post gives me an error.
 
-    which means delete button actually delete the original one, and two retweeted post got an error because they couldn't find the original post..
+   which means delete button actually delete the original one, and two retweeted post got an error because they couldn't find the original post..
 
-    1. update common.js - createPostHtml
+   1. update common.js - createPostHtml
 
-       if the post is retweeted and I'm not a retweeter I can't see pin or delete button.
+      if the post is retweeted and I'm not a retweeter I can't see pin or delete button.
 
-       if the post is retweeted and I'm a retweeter I can see delete button only. and delete post id is retweet post id.
+      if the post is retweeted and I'm a retweeter I can see delete button only. and delete post id is retweet post id.
 
-       :wrench:currently it is not working... if I delete the retweet, original post is also not displaying
+      210623 currently it is not working... if I delete the retweet, original post is also being deleted.
 
-    2. if original post is deleted don't show the retweet too.
+      ​	it's because delete handler get the post Id from post's data-id. I've changed that part like `<div class="post ${largeFontClass}" data-id="${isRetweet ? retweetPostId : postData._id}">`. now delete only retweet post is working.
 
-    3. replyTo could be matter too.
+   2. if original post is deleted don't show the retweet too.
+
+   3. :wrench:  replyTo could be matter too.
+
+      I simply add `if (postData.replyTo !== undefined && postData.replyTo == null) return '';` this line but update it later.
+
+10. liked posts
+
+    210623 I thought of showing liked posts on the right space
+
+    - main-layout.pug
+
+      ```pug
+      .d-none.d-md-block.col-md-2.col-lg-4
+      	block contentRight
+      ```
+
+    - home.pug
+
+      ```pug
+      block contentRight
+      	.likedPostsContainer
+      ```
+
+    - home.js
+
+      ```js
+      $(document).ready(() => {
+          $.get("/api/posts", { followingOnly: true }, results => {
+              outputPosts(results, $(".postsContainer"));
+          });
+          $.get(`/api/posts/likes`, (data, status, xhr) => {
+              if (xhr.status == 400) {
+                  alert("Could not get liked posts.");
+              } else {
+                  outputPosts(data, $(".likedPostsContainer"));
+              }
+          });
+      });
+      
+      ```
+
+    - posts.js
+
+      ```js
+      router.get("/likes", async (req, res, next) => {
+          const userLikes = req.session.user.likes;
+          if (userLikes !== undefined) {
+              const post = await getPosts({ '_id': { $in: userLikes }})
+              return res.status(200).send(post);
+          };
+          res.sendStatus(200);
+      });
+      ```
+
+      at first, I wrote this one at the end of the posts.js and it throws an error.
+
+      ```bash
+      CastError: Cast to ObjectId failed for value "likes" (type string) at path "_id" for model "Post"
+      ```
+
+      It was because there was `router.get("/:id"...)`above. since likes in address is not a valid id. so I bring this handler to top(anywhere higher than :id address). now it works.
+
+11. tag...?
+
+12. image upload
 

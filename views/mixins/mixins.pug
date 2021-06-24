@@ -4,8 +4,29 @@ mixin createPostForm(userLoggedIn)
             img(src=userLoggedIn.profilePic, alt="user's profile picture")
         .textareaContainer 
             textarea#postTextarea(placeholder="What's happening?")
-            .buttonsContainer 
+            .buttonsContainer
+                .attachButtons
+                    .imageAttachButton(data-toggle="modal", data-target="#imageAttachModal")
+                        i.fas.fa-camera
                 button#submitPostButton.postButton(disabled="") Post
+
+mixin createImageAttachModal()
+    #imageAttachModal.modal.fade(tabindex='-1', role='dialog', aria-labelledby='imageAttachModalLabel', aria-hidden='true')
+        .modal-dialog(role='document')
+            .modal-content
+                .modal-header
+                    img(src="/images/leaf.png", alt="")
+
+                    h5#imageAttachModalLabel.modal-title Attach a picture
+                    button.close(type='button', data-dismiss='modal', aria-label='Close')
+                        span(aria-hidden='true') &times;
+                .modal-body
+                    input.fileAttach#filePhoto(type="file", name="filePhoto")
+                    .imagePreviewContainer
+                        img#imagePreview(src="", alt="")
+                .modal-footer
+                    button#imageAttachButton.postButton(type='button', disabled="") Attach
+
 
 mixin createReplyModal(userLoggedIn)
     #replyModal.modal.fade(tabindex='-1', role='dialog', aria-labelledby='replyModalLabel', aria-hidden='true')
@@ -73,7 +94,7 @@ mixin createImageUploadModal()
                     .imagePreviewContainer
                         img#imagePreview(src="", alt="")
                 .modal-footer
-                    button#imageUploadButton.postButton(type='button') Save
+                    button#imageUploadButton.postButton(type='button', disabled="") Save
 
 mixin createCoverPhotoUploadModal()
     #coverPhotoUploadModal.modal.fade(tabindex='-1', role='dialog', aria-labelledby='coverPhotoModalLabel', aria-hidden='true')

@@ -56,6 +56,18 @@ $("#submitPostButton, #submitReplyButton").click(event => {
     })
 });
 
+$("#imageAttachButton").click(() => {
+    const canvas = cropper.getCroppedCanvas();
+    if (canvas == null) return alert("Could not get image.");
+    canvas.toBlob(blob => {
+        console.log(blob);
+        const formData = new FormData();
+        formData.append("croppedImage", blob);
+        $("#imageAttachModal").modal("hide");
+        $("#postTextarea").append("image preview");
+    })
+})
+
 $(document).on("click", ".likeButton", event => {
     const button = $(event.target);
     const postId = getPostIdFromElement(button);
@@ -158,7 +170,6 @@ $("#replyModal").on("hidden.bs.modal", () => $("#originalPostContainer").html(""
 $("#deletePostModal").on("show.bs.modal", event => {
     const button = $(event.relatedTarget);
     const postId = getPostIdFromElement(button);
-    console.log(button, postId);
     $("#deletePostButton").data("id", postId);
 });
 
@@ -224,6 +235,11 @@ $("#unpinButton").click(event => {
 
 $("#filePhoto").change(event => {
     const input = $(event.target)[0];
+    let ratio = '1 / 1';
+    if (input.classList.contains("fileAttach")) {
+        ratio = NaN;
+        $("#imageAttachButton").prop('disabled', false);
+    } else $("#imageUploadButton").prop('disabled', false);
     if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -233,7 +249,7 @@ $("#filePhoto").change(event => {
                 cropper.destroy();
             }
             cropper = new Cropper(image, {
-                aspectRatio: 1 / 1,
+                aspectRatio: ratio,
                 background: false
             })
         }
@@ -242,6 +258,7 @@ $("#filePhoto").change(event => {
 });
 
 $("#imageUploadButton").click(() => {
+    if (cropper === undefined) $("#imageUploadModal").modal("hide");
     const canvas = cropper.getCroppedCanvas();
     if (canvas == null) return alert("Could not upload image.");
     canvas.toBlob(blob => {
@@ -361,7 +378,6 @@ function createPostHtml(postData, largeFont = false) {
     
         let retweetText = '';
         if (isRetweet) {
-            console.log(retweetPostId, postData._id);
             retweetText = `<i class="fas fa-retweet"></i>&nbsp;<span>Retweeted by <a href='/profile/${retweetedBy}'>@${retweetedBy}</a></span>`
         }
     
@@ -399,7 +415,6 @@ function createPostHtml(postData, largeFont = false) {
             };
         };
         if (isRetweet && retweetedById == userLoggedIn._id) {
-            console.log(retweetPostId);
             buttons = `
             <button class="deletePostButton" data-id="${retweetPostId}" data-toggle="modal" data-target="#deletePostModal"><i class="fas fa-times"></i></button>
             `;

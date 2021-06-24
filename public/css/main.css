@@ -191,6 +191,24 @@ button span {
     font-size: 19px;
 }
 
+.buttonsContainer {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.buttonsContainer .attachButtons {
+    margin: 0 15px;
+    font-size: 25px;
+}
+
+.attachButtons i {
+    padding: 6px 10px;
+}
+
+.buttonsContainer i:hover {
+    color: var(--leaf_green);
+}
+
 .postButton {
     background-color: var(--leaf_green);
     color: white;
@@ -921,4 +939,8 @@ button span {
     display: inline-block;
     margin: 0;
     margin-right: 5px;
+}
+
+.likedPostsContainer .postFooter {
+    display: none;
 }

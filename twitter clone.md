@@ -6596,7 +6596,23 @@
 
       It was because there was `router.get("/:id"...)`above. since likes in address is not a valid id. so I bring this handler to top(anywhere higher than :id address). now it works.
 
+    - liked posts container { position: sticky; }
+
+      
+
 11. tag...?
 
 12. image upload
+
+    210624
+
+    - classList.contains("..")!! not includes!
+    - make imageAttach button beside post submit button
+    - make mixin: image attach modal
+    - update filePhoto related event: I made button disabled by default. if file input is changed, button is enabled.
+    - make #imageAttachButton click event.
+    - :wrench: add image preview to post textarea
+    - :wrench: give image data when post submit button is clicked.
+
+13. retweet => repost
 

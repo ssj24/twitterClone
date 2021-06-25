@@ -6513,6 +6513,18 @@
 
 8. notification page looks so umm... not catchy..?
 
+   210626 all/follow/reply/retweet/like tab
+
+   extract notificationType name from tab name.
+
+   originally notificationType has only one condition: not newMessage.
+
+   now find notifications which has the notificationType that I'm looking for.
+
+   like was not the notificationType so I need to change it to postLike.
+
+   need to clear the container before attach notifications by the tab.
+
 9. Is it right to original poster can delete retweeted post..?
 
    Ok... I tried to delete the retweeted post(originally posted by me), and it throws an error..related to postedBy...
@@ -6598,7 +6610,9 @@
 
     - liked posts container { position: sticky; }
 
-      
+      210626
+
+    - :wrench: hide pin/delete button
 
 11. tag...?
 

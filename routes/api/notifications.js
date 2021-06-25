@@ -12,11 +12,14 @@ app.use(express.urlencoded({
 }));
 
 router.get("/", async (req, res, next) => {
-    
     let searchObj = {
         userTo: req.session.user._id,
-        notificationType: { $ne: "newMessage" }
+        notificationType: { $ne: "newMessage"}
     };
+    
+    if (req.query.field !== "all") {
+        searchObj.notificationType = { $eq: req.query.field };
+    }
 
     if (req.query.unreadOnly !== undefined && req.query.unreadOnly == "true") {
         searchObj.opened = false;

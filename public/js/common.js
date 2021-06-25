@@ -670,7 +670,7 @@ function refreshMessagesBadge() {
 };
 
 function refreshNotificationsBadge() {
-    $.get("/api/notifications", { unreadOnly: true }, (data) => {
+    $.get("/api/notifications", { field: "all", unreadOnly: true }, (data) => {
         const numResults = data.length;
         if (numResults > 0) {
             $("#notificationBadge").text(numResults).addClass("active");

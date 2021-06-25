@@ -941,6 +941,40 @@ button span {
     margin-right: 5px;
 }
 
+.rightSection {
+    position: sticky;
+    margin-top: 100px;
+    padding: var(--spacing) 0 0 var(--spacing);
+}
+
+.rightSection h1 {
+    margin-bottom: var(--spacing);
+}
+
+.rightSection .likedPostsContainer {
+    border-top: 2px solid var(--pale_green);
+    height: 400px;
+    overflow-y: scroll;
+}
+
 .likedPostsContainer .postFooter {
     display: none;
+}
+
+.notiRight {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.rightMenu {
+    padding: 7px var(--spacing);
+    margin: 0;
+}
+
+.rightMenu.active {
+    border-left: 7px solid var(--leaf_green);
+    color: black;
+    font-weight: bold;
 }
